@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>H[span_11](start_span)[span_11](end_span)ELLFIRE RIDER 3D – GamerKie Edition</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="game-root">
+    <div id="canvas-container"></div>
+    <div id="speed-lines" aria-hidden="true"></div>
+    <div id="damage-flash" aria-hidden="true"></div>
+
+    <!-- IN-GAME HUD -->
+    <div id="hud" class="hud hidden">
+      <!-- Top-Left Cluster -->
+      <div class="hud-top-left">
+        <div class="hud-icon-row">
+          <button id="btn-pause" class="hud-btn square" title="Pause (Esc)" aria-label="Pause">❚❚</button>
+          <button id="btn-hud-boost-info" class="hud-btn round accent-gold" title="Nitro Boost Info" aria-label="Nitro Status">⚡</button>
+          <button id="btn-hud-sound" class="hud-btn round" title="Toggle Audio" aria-label="Toggle Sound">🔊</button>
+          <button id="btn-hud-help" class="hud-btn round accent-red" title="Mission Objective" aria-label="Mission Info">ℹ</button>
+        </div>
+
+        <div class="hud-pill" id="hud-objective-pill">
+          <span class="pill-icon">💀</span>
+          <span id="hud-objective-text">0 / 15</span>
+        </div>
+
+        <div class="hud-pill" id="hud-timer-pill">
+          <span class="pill-icon">⏱</span>
+          <span id="hud-timer-text">02:00</span>
+        </div>
+
+        <div class="hud-bars">
+          <div class="bar-wrap" title="Rider Health">
+            <span class="bar-label">HP</span>
+            <div class="bar-track"><div id="bar-health" class="bar-fill hp" style="width:100%"></div></div>
+          </div>
+          <div class="bar-wrap" title="Hellfire Nitro">
+            <span class="bar-label">NITRO</span>
+            <div class="bar-track"><div id="bar-nitro" class="bar-fill nitro" style="width:100%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top-Center Boss Health Bar & Toast -->
+      <div class="hud-top-center">
+        <div id="boss-hud" class="boss-hud hidden">
+          <div class="boss-title" id="boss-name">SKYWARD DRAGON RIDER</div>
+          <div class="boss-bar-track"><div id="bar-boss" class="boss-bar-fill" style="width:100%"></div></div>
+        </div>
+        <div id="hud-toast" class="hud-toast hidden"></div>
+      </div>
+
+      <!-- Top-Right Cluster -->
+      <div class="hud-top-right">
+        <div class="coin-pill" id="btn-open-garage-hud" title="Open Garage & Upgrades">
+          <span class="coin-icon">🪙</span>
+          <span id="hud-coins">0</span>
+          <span class="coin-plus">+</span>
+        </div>
+        <div class="mission-badge" id="hud-mission-badge">M1: MOONLIT BRIDGE</div>
+        <div class="speed-badge"><span id="hud-speed">0</span> <small>KM/H</small></div>
+      </div>
+
+      <!-- Left-Edge Utility Column -->
+      <div class="hud-left-strip">
+        <button id="btn-cam-left" class="hud-btn round small" title="Cycle Camera (C)" aria-label="Camera">📷</button>
+        <button id="btn-bloom-toggle" class="hud-btn round small" title="Toggle Glow/Bloom" aria-label="Bloom">✨</button>
+        <button id="btn-brake-touch" class="hud-btn round small" title="Brake / Slow (S)" aria-label="Brake">🛑</button>
+      </div>
+
+      <!-- Bottom-Left Virtual Steering Joystick -->
+      <div class="hud-bottom-left">
+        <div id="joystick-zone" class="joystick-zone" aria-label="Steering Joystick">
+          <div class="joystick-ring">
+            <div id="joystick-knob" class="joystick-knob"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom-Right Combat & Stunt Controls -->
+      <div class="hud-bottom-right">
+        <div class="action-arc">
+          <button id="btn-camera" class="hud-btn round action-sec" title="Camera Mode (C)">📷<span>CAM</span></button>
+          <button id="btn-jump" class="hud-btn round action-sec" title="Jump / Stunt (E)">⤴<span>JUMP</span></button>
+          <button id="btn-boost" class="hud-btn round action-sec flame" title="Hellfire Nitro (Shift)">🔥<span>NITRO</span></button>
+        </div>
+        <button id="btn-attack" class="hud-btn round action-primary" title="Chain / Hellfire Strike (Space / Click)">
+          <span class="chain-glyph">⛓</span>
+          <small>STRIKE</small>
+          <div id="attack-cd-ring" class="cd-overlay"></div>
+        </button>
+      </div>
+    </div>
+
+    <!-- START / TITLE SCREEN -->
+    <div id="screen-title" class="overlay-screen active">
+      <div class="title-card">
+        <div class="brand-tag">GAMERKIE PRESENTS</div>
+        <h1 class="game-title">HELLFIRE RIDER <span>3D</span></h1>
+        <p class="game-subtitle">Supernatural Stunt Chopper &amp; Boss Combat</p>
+
+        <div class="title-stats">
+          <span>🪙 Souls/Coins: <strong id="menu-coins">0</strong></span>
+          <span>🏆 Missions Cleared: <strong id="menu-cleared">0 / 6</strong></span>
+          <span>🛣 Endless Best: <strong id="menu-endless">0 m</strong></span>
+        </div>
+
+        <div class="menu-buttons">
+          <button id="btn-play-next" class="gk-btn primary">▶ PLAY MISSION</button>
+          <button id="btn-level-select" class="gk-btn">🗺 SELECT LEVEL</button>
+          <button id="btn-garage" class="gk-btn">🔥 GARAGE &amp; UPGRADES</button>
+          <button id="btn-how-to-play" class="gk-btn">📖 HOW TO PLAY</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEVEL SELECT MODAL -->
+    <div id="screen-levels" class="overlay-screen">
+      <div class="modal-panel wide">
+        <div class="modal-header">
+          <h2>SELECT MISSION</h2>
+          <button class="close-btn" data-close="screen-levels">✕</button>
+        </div>
+        <div id="levels-grid" class="levels-grid"></div>
+      </div>
+    </div>
+
+    <!-- GARAGE / UPGRADES MODAL -->
+    <div id="screen-garage" class="overlay-screen">
+      <div class="modal-panel wide">
+        <div class="modal-header">
+          <h2>HELLFIRE GARAGE <span class="garage-coins">🪙 <strong id="garage-coins-val">0</strong></span></h2>
+          <button class="close-btn" data-close="screen-garage">✕</button>
+        </div>
+        <div id="garage-upgrades" class="garage-grid"></div>
+        <h3 class="section-sub">FLAME &amp; CHOPPER SKINS</h3>
+        <div id="garage-skins" class="skins-row"></div>
+      </div>
+    </div>
+
+    <!-- HOW TO PLAY MODAL -->
+    <div id="screen-help" class="overlay-screen">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <h2>CONTROLS &amp; COMBAT GUIDE</h2>
+          <button class="close-btn" data-close="screen-help">✕</button>
+        </div>
+        <div class="help-body">
+          <p><strong>Steer &amp; Throttle:</strong> <code>A / D</code> or <code>← / →</code> to steer, <code>W / S</code> or <code>↑ / ↓</code> to accelerate or brake. On touch screens, use the bottom-left virtual joystick (push up to throttle, left/right to steer).</p>
+          <p><strong>Chain / Hellfire Strike:</strong> Press <code>Space</code>, <code>Left Click</code>, or tap <strong>STRIKE</strong> to launch seeking hellfire chain blasts at cursed totems, rival bikers, and the Flying Dragon Boss.</p>
+          <p><strong>Hellfire Nitro Boost:</strong> Hold <code>Shift</code> or tap <strong>NITRO</strong> to surge speed, widen camera FOV, and smash straight through barricades.</p>
+          <p><strong>Jump &amp; Stunt:</strong> Press <code>E</code> or tap <strong>JUMP</strong> over low hazards or hit ramps to perform mid-air flips for bonus coins and nitro recharge.</p>
+          <p><strong>Camera Switch:</strong> Press <code>C</code> or tap <strong>CAM</strong> to cycle Dynamic Chase, Action Angle, and Tactical Top views.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- MISSION BRIEFING MODAL -->
+    <div id="screen-briefing" class="overlay-screen">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <h2 id="brief-title">MISSION 1</h2>
+          <button class="close-btn" data-close="screen-briefing">✕</button>
+        </div>
+        <p id="brief-desc" class="brief-desc"></p>
+        <div class="brief-meta">
+          <div><span>Objective</span><strong id="brief-obj"></strong></div>
+          <div><span>Time Limit</span><strong id="brief-time"></strong></div>
+          <div><span>Reward</span><strong id="brief-reward"></strong></div>
+        </div>
+        <div class="modal-actions">
+          <button id="btn-launch-mission" class="gk-btn primary">🔥 IGNITE &amp; RIDE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAUSE MODAL -->
+    <div id="screen-pause" class="overlay-screen">
+      <div class="modal-panel compact">
+        <h2>MISSION PAUSED</h2>
+        <div class="menu-buttons">
+          <button id="btn-resume" class="gk-btn primary">▶ RESUME</button>
+          <button id="btn-restart" class="gk-btn">↻ RESTART MISSION</button>
+          <button id="btn-pause-audio" class="gk-btn">🔊 AUDIO: ON</button>
+          <button id="btn-pause-levels" class="gk-btn">🗺 LEVEL SELECT</button>
+          <button id="btn-pause-menu" class="gk-btn">🏠 MAIN MENU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MISSION SUMMARY MODAL -->
+    <div id="screen-summary" class="overlay-screen">
+      <div class="modal-panel">
+        <h2 id="summary-heading">MISSION COMPLETE</h2>
+        <div id="summary-stars" class="summary-stars">★★★</div>
+        <p id="summary-reason" class="brief-desc"></p>
+        <div class="brief-meta">
+          <div><span>Time</span><strong id="summary-time">00:00</strong></div>
+          <div><span>Coins Earned</span><strong id="summary-coins">+0</strong></div>
+          <div><span>Stunts / Kills</span><strong id="summary-score">0</strong></div>
+        </div>
+        <div class="modal-actions row">
+          <button id="btn-summary-next" class="gk-btn primary">NEXT MISSION ▶</button>
+          <button id="btn-summary-replay" class="gk-btn">↻ REPLAY</button>
+          <button id="btn-summary-menu" class="gk-btn">🏠 MENU</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/game.js"></script>
+</body>
+</html>
