@@ -2,224 +2,2757 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>H[span_11](start_span)[span_11](end_span)ELLFIRE RIDER 3D – GamerKie Edition</title>
-  <link rel="stylesheet" href="css/style.css" />
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>GHOST RIDER: HELLFIRE ROAD — GAMERKIE EDITION</title>
+  <!--
+  =============================================================================
+  GAMERKIE DEPLOYMENT & BLOGGER EMBEDDING GUIDE
+  =============================================================================
+  1. HOSTING ON GITHUB PAGES:
+     - Create a new public GitHub repository (e.g., `ghost-rider-hellfire-road`).
+     - Upload this single `index.html` file to the root of the repository.
+     - Go to Settings -> Pages -> Source -> Deploy from branch (`main` / `root`).
+     - Wait ~60 seconds for your live URL: `https://<username>.github.io/ghost-rider-hellfire-road/`
+
+  2. EMBEDDING IN BLOGGER (GAMERKIE RESPONSIVE IFRAME):
+     Paste the following snippet into your Blogger post (HTML view):
+     <div style="position:relative;width:100%;max-width:1000px;margin:0 auto;aspect-ratio:16/9;min-height:480px;background:#090507;border:2px solid #ff5500;border-radius:12px;overflow:hidden;box-shadow:0 12px 35px rgba(255,68,0,0.35);">
+       <iframe
+         src="https://<username>.github.io/ghost-rider-hellfire-road/"
+         style="width:100%;height:100%;border:0;display:block;"
+         allow="fullscreen; autoplay; gamepad"
+         allowfullscreen
+         loading="lazy"
+         title="Ghost Rider: Hellfire Road - GamerKie Edition">
+       </iframe>
+     </div>
+  =============================================================================
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    :root {
+      --bg-void: #070406;
+      --fire-core: #fff3b0;
+      --fire-bright: #ff9e00;
+      --fire-deep: #ff3c00;
+      --blood-crimson: #9e001c;
+      --soul-cyan: #00f0ff;
+      --panel-bg: rgba(14, 9, 12, 0.88);
+      --panel-border: rgba(255, 102, 0, 0.45);
+      --text-main: #f8f2ec;
+      --text-muted: #b8a398;
     }
-  }
-  </script>
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-void);
+      color: var(--text-main);
+      font-family: 'Rajdhani', sans-serif;
+    }
+
+    #game-root {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 30%, #24090d 0%, #070406 85%);
+    }
+
+    /* Layered Canvases: 2D Parallax Backdrop + 3D Three.js Playfield + 2D Screen FX */
+    #bg-canvas, #three-canvas, #fx-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #bg-canvas { z-index: 1; }
+    #three-canvas { z-index: 2; pointer-events: none; }
+    #fx-canvas { z-index: 3; pointer-events: none; }
+
+    /* Vignette & Damage Flash Overlay */
+    #screen-flash {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.12s ease-out;
+      background: radial-gradient(circle, transparent 45%, rgba(255, 30, 0, 0.65) 100%);
+    }
+
+    /* HUD Layer */
+    #hud {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: clamp(8px, 1.8vw, 18px);
+    }
+
+    .hud-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .hud-panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 8px 12px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(255, 85, 0, 0.12);
+    }
+
+    .vitals-box {
+      min-width: min(290px, 52vw);
+      flex: 1 1 240px;
+      max-width: 340px;
+    }
+
+    .bar-row {
+      margin-bottom: 6px;
+    }
+    .bar-row:last-child { margin-bottom: 0; }
+
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      margin-bottom: 3px;
+      text-transform: uppercase;
+    }
+
+    .bar-track {
+      width: 100%;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 99px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 100%;
+      border-radius: 99px;
+      transition: width 0.12s ease-out;
+    }
+
+    #hp-fill {
+      background: linear-gradient(90deg, #b8001f, #ff3c00, #ff9e00);
+      box-shadow: 0 0 10px rgba(255, 60, 0, 0.8);
+    }
+
+    #penance-fill {
+      width: 0%;
+      background: linear-gradient(90deg, #0077ff, #00f0ff, #ffffff);
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.85);
+    }
+
+    .mission-box {
+      text-align: center;
+      flex: 1 1 260px;
+      max-width: 440px;
+    }
+
+    .mission-kicker {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.65rem;
+      color: var(--fire-bright);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .mission-title-hud {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(0.9rem, 1.6vw, 1.15rem);
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(255, 94, 0, 0.7);
+    }
+
+    .objective-text {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #ffd6b0;
+      margin-top: 2px;
+    }
+
+    .progress-mini {
+      width: 100%;
+      height: 5px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 99px;
+      margin-top: 5px;
+      overflow: hidden;
+    }
+    #mission-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ff3c00, #ffbe0b);
+      transition: width 0.2s ease;
+    }
+
+    .stats-controls-box {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .score-strip {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.78rem;
+    }
+
+    .stat-pill span {
+      color: var(--fire-bright);
+      font-weight: 900;
+    }
+
+    #combo-badge {
+      background: linear-gradient(135deg, #ff3c00, #ff9e00);
+      color: #090507;
+      font-weight: 900;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      transform: scale(1);
+      transition: transform 0.1s ease;
+    }
+
+    .sys-buttons {
+      display: flex;
+      gap: 6px;
+      pointer-events: auto;
+    }
+
+    .icon-btn {
+      background: rgba(25, 14, 18, 0.9);
+      border: 1px solid rgba(255, 120, 40, 0.45);
+      color: #fff;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .icon-btn:hover {
+      background: rgba(255, 85, 0, 0.28);
+      border-color: var(--fire-bright);
+      transform: translateY(-1px);
+    }
+    .icon-btn:active { transform: scale(0.95); }
+
+    /* Boss Health Bar */
+    #boss-hud {
+      align-self: center;
+      width: min(540px, 88vw);
+      display: none;
+      margin-top: 4px;
+    }
+    #boss-hud.active { display: block; }
+    .boss-header {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'Cinzel', serif;
+      font-weight: 900;
+      font-size: 0.9rem;
+      color: #ff4d4d;
+      text-shadow: 0 0 8px rgba(255, 0, 0, 0.8);
+      margin-bottom: 4px;
+    }
+    .boss-track {
+      height: 13px;
+      background: rgba(0,0,0,0.75);
+      border: 1px solid #ff3c00;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    #boss-hp-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #6b0014, #e60026, #ff7b00);
+      transition: width 0.15s ease;
+    }
+
+    /* Floating Center Banner (Wave / Penance Stare / Phase) */
+    #center-banner {
+      position: absolute;
+      top: 28%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      z-index: 9;
+      pointer-events: none;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    #center-banner.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    #center-banner h2 {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(1.4rem, 3.8vw, 2.7rem);
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      color: #fff3b0;
+      text-shadow: 0 0 20px #ff3c00, 0 0 40px #9e001c;
+    }
+    #center-banner p {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(0.75rem, 1.5vw, 1rem);
+      color: #ff9e00;
+      letter-spacing: 0.15em;
+    }
+
+    /* Mobile / Touch Controls */
+    #touch-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      width: 100%;
+      pointer-events: none;
+      padding-bottom: env(safe-area-inset-bottom, 4px);
+    }
+
+    .touch-cluster {
+      display: flex;
+      gap: 10px;
+      pointer-events: auto;
+      align-items: flex-end;
+    }
+
+    .touch-grid-actions {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 9px;
+      pointer-events: auto;
+    }
+
+    .t-btn {
+      width: clamp(54px, 13vw, 68px);
+      height: clamp(54px, 13vw, 68px);
+      border-radius: 16px;
+      background: rgba(18, 10, 14, 0.72);
+      border: 2px solid rgba(255, 115, 0, 0.5);
+      color: #fff;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 800;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55), inset 0 0 10px rgba(255, 94, 0, 0.18);
+      backdrop-filter: blur(4px);
+      cursor: pointer;
+    }
+    .t-btn svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+    .t-btn.pressed, .t-btn:active {
+      background: rgba(255, 85, 0, 0.45);
+      border-color: #fff3b0;
+      transform: scale(0.93);
+    }
+    .t-btn.special-ready {
+      border-color: var(--soul-cyan);
+      box-shadow: 0 0 18px rgba(0, 240, 255, 0.75);
+      animation: pulseCyan 1.2s infinite alternate;
+    }
+    @keyframes pulseCyan {
+      from { transform: scale(1); }
+      to { transform: scale(1.06); }
+    }
+
+    @media (min-width: 960px) and (pointer: fine) {
+      #touch-controls {
+        opacity: 0.42;
+        transition: opacity 0.2s ease;
+      }
+      #touch-controls:hover { opacity: 0.95; }
+    }
+
+    /* Fullscreen Modal Overlays (Menu, Pause, Results) */
+    .overlay-screen {
+      position: absolute;
+      inset: 0;
+      z-index: 30;
+      background: radial-gradient(circle at 50% 25%, rgba(46, 11, 16, 0.92), rgba(7, 4, 6, 0.97));
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow-y: auto;
+    }
+    .overlay-screen.hidden { display: none; }
+
+    .modal-card {
+      width: 100%;
+      max-width: 920px;
+      background: linear-gradient(180deg, rgba(22, 12, 16, 0.96) 0%, rgba(11, 6, 9, 0.98) 100%);
+      border: 1px solid rgba(255, 102, 0, 0.55);
+      border-radius: 18px;
+      padding: clamp(16px, 3vw, 28px);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(255, 68, 0, 0.22);
+      max-height: 94vh;
+      overflow-y: auto;
+    }
+
+    .brand-tag {
+      display: inline-block;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.22em;
+      color: var(--fire-bright);
+      background: rgba(255, 102, 0, 0.14);
+      border: 1px solid rgba(255, 102, 0, 0.45);
+      padding: 4px 12px;
+      border-radius: 99px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .hero-title {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(1.65rem, 4.4vw, 3rem);
+      font-weight: 900;
+      line-height: 1.08;
+      background: linear-gradient(180deg, #fff8d6 0%, #ff9e00 52%, #ff2a00 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 4px 18px rgba(255, 68, 0, 0.5));
+      margin-bottom: 4px;
+    }
+
+    .hero-subtitle {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(0.75rem, 1.5vw, 0.95rem);
+      color: var(--text-muted);
+      letter-spacing: 0.16em;
+      margin-bottom: 16px;
+    }
+
+    .menu-meta-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+    }
+
+    .meta-stats {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.78rem;
+    }
+    .meta-stats strong { color: var(--fire-bright); }
+
+    .mission-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .mission-card {
+      position: relative;
+      background: rgba(28, 15, 20, 0.75);
+      border: 1px solid rgba(255, 110, 40, 0.28);
+      border-radius: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      text-align: left;
+    }
+    .mission-card:hover:not(.locked) {
+      border-color: var(--fire-bright);
+      transform: translateY(-2px);
+      background: rgba(45, 20, 24, 0.9);
+    }
+    .mission-card.selected {
+      border: 2px solid var(--fire-bright);
+      box-shadow: 0 0 20px rgba(255, 110, 0, 0.35);
+      background: rgba(54, 22, 24, 0.95);
+    }
+    .mission-card.locked {
+      opacity: 0.48;
+      cursor: not-allowed;
+      filter: grayscale(0.7);
+    }
+
+    .m-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.68rem;
+      color: var(--fire-bright);
+      margin-bottom: 4px;
+    }
+    .m-card-title {
+      font-family: 'Cinzel', serif;
+      font-size: 1.02rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .m-card-desc {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      line-height: 1.3;
+      margin-bottom: 8px;
+    }
+    .m-card-foot {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.68rem;
+      color: #ffd166;
+    }
+
+    .controls-guide {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 18px;
+      font-size: 0.82rem;
+    }
+    .ctrl-item kbd {
+      background: rgba(255, 102, 0, 0.22);
+      border: 1px solid rgba(255, 102, 0, 0.5);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.68rem;
+      color: #fff3b0;
+    }
+
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #ff3c00 0%, #ff8800 50%, #ffbe0b 100%);
+      color: #120608;
+      border: none;
+      border-radius: 12px;
+      padding: 13px 28px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      box-shadow: 0 8px 25px rgba(255, 68, 0, 0.55);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 12px 32px rgba(255, 110, 0, 0.75);
+    }
+    .btn-primary:active { transform: scale(0.97); }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.07);
+      color: #fff;
+      border: 1px solid rgba(255, 120, 40, 0.45);
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 102, 0, 0.22);
+      border-color: var(--fire-bright);
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin: 18px 0;
+    }
+    .result-stat {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 102, 0, 0.3);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+    .result-stat .val {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: var(--fire-bright);
+    }
+    .result-stat .lbl {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: absolute;
+      bottom: 84px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 40;
+      background: rgba(18, 10, 14, 0.95);
+      border: 1px solid var(--fire-bright);
+      color: #fff3b0;
+      padding: 8px 18px;
+      border-radius: 99px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.75rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    #toast.show { opacity: 1; }
+  </style>
 </head>
 <body>
   <div id="game-root">
-    <div id="canvas-container"></div>
-    <div id="speed-lines" aria-hidden="true"></div>
-    <div id="damage-flash" aria-hidden="true"></div>
+    <!-- Layer 1: 2D Parallax Sky, Cathedrals, Blood Moon & Embers -->
+    <canvas id="bg-canvas"></canvas>
+    <!-- Layer 2: 3D Three.js Hellcycle, Ghost Rider & Demon Horde -->
+    <canvas id="three-canvas"></canvas>
+    <!-- Layer 3: 2D Screen-space Damage Numbers, Chain Arcs & Penance Beams -->
+    <canvas id="fx-canvas"></canvas>
 
-    <!-- IN-GAME HUD -->
-    <div id="hud" class="hud hidden">
-      <!-- Top-Left Cluster -->
-      <div class="hud-top-left">
-        <div class="hud-icon-row">
-          <button id="btn-pause" class="hud-btn square" title="Pause (Esc)" aria-label="Pause">❚❚</button>
-          <button id="btn-hud-boost-info" class="hud-btn round accent-gold" title="Nitro Boost Info" aria-label="Nitro Status">⚡</button>
-          <button id="btn-hud-sound" class="hud-btn round" title="Toggle Audio" aria-label="Toggle Sound">🔊</button>
-          <button id="btn-hud-help" class="hud-btn round accent-red" title="Mission Objective" aria-label="Mission Info">ℹ</button>
-        </div>
+    <div id="screen-flash"></div>
 
-        <div class="hud-pill" id="hud-objective-pill">
-          <span class="pill-icon">💀</span>
-          <span id="hud-objective-text">0 / 15</span>
-        </div>
-
-        <div class="hud-pill" id="hud-timer-pill">
-          <span class="pill-icon">⏱</span>
-          <span id="hud-timer-text">02:00</span>
-        </div>
-
-        <div class="hud-bars">
-          <div class="bar-wrap" title="Rider Health">
-            <span class="bar-label">HP</span>
-            <div class="bar-track"><div id="bar-health" class="bar-fill hp" style="width:100%"></div></div>
+    <!-- HUD -->
+    <div id="hud">
+      <div class="hud-top">
+        <!-- Player Vitals -->
+        <div class="hud-panel vitals-box">
+          <div class="bar-row">
+            <div class="bar-label">
+              <span>HELLFIRE INTEGRITY</span>
+              <span id="hp-text">100 / 100</span>
+            </div>
+            <div class="bar-track"><div id="hp-fill" class="bar-fill"></div></div>
           </div>
-          <div class="bar-wrap" title="Hellfire Nitro">
-            <span class="bar-label">NITRO</span>
-            <div class="bar-track"><div id="bar-nitro" class="bar-fill nitro" style="width:100%"></div></div>
+          <div class="bar-row">
+            <div class="bar-label">
+              <span style="color:#7ceeff;">PENANCE STARE</span>
+              <span id="penance-text" style="color:#7ceeff;">0%</span>
+            </div>
+            <div class="bar-track"><div id="penance-fill" class="bar-fill"></div></div>
           </div>
         </div>
-      </div>
 
-      <!-- Top-Center Boss Health Bar & Toast -->
-      <div class="hud-top-center">
-        <div id="boss-hud" class="boss-hud hidden">
-          <div class="boss-title" id="boss-name">SKYWARD DRAGON RIDER</div>
-          <div class="boss-bar-track"><div id="bar-boss" class="boss-bar-fill" style="width:100%"></div></div>
+        <!-- Active Mission Objective -->
+        <div class="hud-panel mission-box">
+          <div id="hud-mission-num" class="mission-kicker">MISSION 01</div>
+          <div id="hud-mission-name" class="mission-title-hud">THE CONTRACT BEGINS</div>
+          <div id="hud-objective" class="objective-text">Defeat 8 Hell-Bikers</div>
+          <div class="progress-mini"><div id="mission-progress-fill"></div></div>
         </div>
-        <div id="hud-toast" class="hud-toast hidden"></div>
-      </div>
 
-      <!-- Top-Right Cluster -->
-      <div class="hud-top-right">
-        <div class="coin-pill" id="btn-open-garage-hud" title="Open Garage & Upgrades">
-          <span class="coin-icon">🪙</span>
-          <span id="hud-coins">0</span>
-          <span class="coin-plus">+</span>
-        </div>
-        <div class="mission-badge" id="hud-mission-badge">M1: MOONLIT BRIDGE</div>
-        <div class="speed-badge"><span id="hud-speed">0</span> <small>KM/H</small></div>
-      </div>
-
-      <!-- Left-Edge Utility Column -->
-      <div class="hud-left-strip">
-        <button id="btn-cam-left" class="hud-btn round small" title="Cycle Camera (C)" aria-label="Camera">📷</button>
-        <button id="btn-bloom-toggle" class="hud-btn round small" title="Toggle Glow/Bloom" aria-label="Bloom">✨</button>
-        <button id="btn-brake-touch" class="hud-btn round small" title="Brake / Slow (S)" aria-label="Brake">🛑</button>
-      </div>
-
-      <!-- Bottom-Left Virtual Steering Joystick -->
-      <div class="hud-bottom-left">
-        <div id="joystick-zone" class="joystick-zone" aria-label="Steering Joystick">
-          <div class="joystick-ring">
-            <div id="joystick-knob" class="joystick-knob"></div>
+        <!-- Score & System Controls -->
+        <div class="hud-panel stats-controls-box">
+          <div class="score-strip">
+            <div class="stat-pill">SOULS: <span id="hud-score">0</span></div>
+            <div class="stat-pill">TIME: <span id="hud-timer">00:00</span></div>
+            <div id="combo-badge">1x</div>
+          </div>
+          <div class="sys-buttons">
+            <button id="btn-audio" class="icon-btn" title="Toggle Audio">🔊 SFX</button>
+            <button id="btn-gfx" class="icon-btn" title="Graphics Quality">⚡ AUTO</button>
+            <button id="btn-fs" class="icon-btn" title="Toggle Fullscreen">⛶ FULL</button>
+            <button id="btn-pause" class="icon-btn" title="Pause Game">⏸ PAUSE</button>
           </div>
         </div>
       </div>
 
-      <!-- Bottom-Right Combat & Stunt Controls -->
-      <div class="hud-bottom-right">
-        <div class="action-arc">
-          <button id="btn-camera" class="hud-btn round action-sec" title="Camera Mode (C)">📷<span>CAM</span></button>
-          <button id="btn-jump" class="hud-btn round action-sec" title="Jump / Stunt (E)">⤴<span>JUMP</span></button>
-          <button id="btn-boost" class="hud-btn round action-sec flame" title="Hellfire Nitro (Shift)">🔥<span>NITRO</span></button>
+      <!-- Boss Bar -->
+      <div id="boss-hud" class="hud-panel">
+        <div class="boss-header">
+          <span id="boss-name">ROAD RIPPER</span>
+          <span id="boss-hp-text">100%</span>
         </div>
-        <button id="btn-attack" class="hud-btn round action-primary" title="Chain / Hellfire Strike (Space / Click)">
-          <span class="chain-glyph">⛓</span>
-          <small>STRIKE</small>
-          <div id="attack-cd-ring" class="cd-overlay"></div>
-        </button>
+        <div class="boss-track"><div id="boss-hp-fill"></div></div>
       </div>
-    </div>
 
-    <!-- START / TITLE SCREEN -->
-    <div id="screen-title" class="overlay-screen active">
-      <div class="title-card">
-        <div class="brand-tag">GAMERKIE PRESENTS</div>
-        <h1 class="game-title">HELLFIRE RIDER <span>3D</span></h1>
-        <p class="game-subtitle">Supernatural Stunt Chopper &amp; Boss Combat</p>
-
-        <div class="title-stats">
-          <span>🪙 Souls/Coins: <strong id="menu-coins">0</strong></span>
-          <span>🏆 Missions Cleared: <strong id="menu-cleared">0 / 6</strong></span>
-          <span>🛣 Endless Best: <strong id="menu-endless">0 m</strong></span>
-        </div>
-
-        <div class="menu-buttons">
-          <button id="btn-play-next" class="gk-btn primary">▶ PLAY MISSION</button>
-          <button id="btn-level-select" class="gk-btn">🗺 SELECT LEVEL</button>
-          <button id="btn-garage" class="gk-btn">🔥 GARAGE &amp; UPGRADES</button>
-          <button id="btn-how-to-play" class="gk-btn">📖 HOW TO PLAY</button>
-        </div>
+      <!-- Center Announcement Banner -->
+      <div id="center-banner">
+        <h2 id="banner-title">WAVE 1</h2>
+        <p id="banner-sub">BURN THEIR SOULS</p>
       </div>
-    </div>
 
-    <!-- LEVEL SELECT MODAL -->
-    <div id="screen-levels" class="overlay-screen">
-      <div class="modal-panel wide">
-        <div class="modal-header">
-          <h2>SELECT MISSION</h2>
-          <button class="close-btn" data-close="screen-levels">✕</button>
+      <!-- Responsive Touch Controls -->
+      <div id="touch-controls">
+        <div class="touch-cluster">
+          <button id="t-left" class="t-btn" aria-label="Steer Left">
+            <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            LEFT
+          </button>
+          <button id="t-right" class="t-btn" aria-label="Steer Right">
+            <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+            RIGHT
+          </button>
         </div>
-        <div id="levels-grid" class="levels-grid"></div>
-      </div>
-    </div>
 
-    <!-- GARAGE / UPGRADES MODAL -->
-    <div id="screen-garage" class="overlay-screen">
-      <div class="modal-panel wide">
-        <div class="modal-header">
-          <h2>HELLFIRE GARAGE <span class="garage-coins">🪙 <strong id="garage-coins-val">0</strong></span></h2>
-          <button class="close-btn" data-close="screen-garage">✕</button>
-        </div>
-        <div id="garage-upgrades" class="garage-grid"></div>
-        <h3 class="section-sub">FLAME &amp; CHOPPER SKINS</h3>
-        <div id="garage-skins" class="skins-row"></div>
-      </div>
-    </div>
-
-    <!-- HOW TO PLAY MODAL -->
-    <div id="screen-help" class="overlay-screen">
-      <div class="modal-panel">
-        <div class="modal-header">
-          <h2>CONTROLS &amp; COMBAT GUIDE</h2>
-          <button class="close-btn" data-close="screen-help">✕</button>
-        </div>
-        <div class="help-body">
-          <p><strong>Steer &amp; Throttle:</strong> <code>A / D</code> or <code>← / →</code> to steer, <code>W / S</code> or <code>↑ / ↓</code> to accelerate or brake. On touch screens, use the bottom-left virtual joystick (push up to throttle, left/right to steer).</p>
-          <p><strong>Chain / Hellfire Strike:</strong> Press <code>Space</code>, <code>Left Click</code>, or tap <strong>STRIKE</strong> to launch seeking hellfire chain blasts at cursed totems, rival bikers, and the Flying Dragon Boss.</p>
-          <p><strong>Hellfire Nitro Boost:</strong> Hold <code>Shift</code> or tap <strong>NITRO</strong> to surge speed, widen camera FOV, and smash straight through barricades.</p>
-          <p><strong>Jump &amp; Stunt:</strong> Press <code>E</code> or tap <strong>JUMP</strong> over low hazards or hit ramps to perform mid-air flips for bonus coins and nitro recharge.</p>
-          <p><strong>Camera Switch:</strong> Press <code>C</code> or tap <strong>CAM</strong> to cycle Dynamic Chase, Action Angle, and Tactical Top views.</p>
+        <div class="touch-grid-actions">
+          <button id="t-chain" class="t-btn" aria-label="Chain Whip">
+            <svg viewBox="0 0 24 24"><path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z"/></svg>
+            CHAIN
+          </button>
+          <button id="t-blast" class="t-btn" aria-label="Hellfire Blast">
+            <svg viewBox="0 0 24 24"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/></svg>
+            BLAST
+          </button>
+          <button id="t-boost" class="t-btn" aria-label="Boost Jump">
+            <svg viewBox="0 0 24 24"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg>
+            JUMP
+          </button>
+          <button id="t-penance" class="t-btn" aria-label="Penance Stare">
+            <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+            STARE
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- MISSION BRIEFING MODAL -->
-    <div id="screen-briefing" class="overlay-screen">
-      <div class="modal-panel">
-        <div class="modal-header">
-          <h2 id="brief-title">MISSION 1</h2>
-          <button class="close-btn" data-close="screen-briefing">✕</button>
+    <!-- LAUNCHER / MISSION HUB OVERLAY -->
+    <div id="menu-overlay" class="overlay-screen">
+      <div class="modal-card">
+        <div style="text-align:center;">
+          <div class="brand-tag">🔥 GAMERKIE PRESENT 🔥</div>
+          <h1 class="hero-title">GHOST RIDER: HELLFIRE ROAD</h1>
+          <div class="hero-subtitle">GAMERKIE EDITION • HYBRID 2.5D/3D ACTION</div>
         </div>
-        <p id="brief-desc" class="brief-desc"></p>
-        <div class="brief-meta">
-          <div><span>Objective</span><strong id="brief-obj"></strong></div>
-          <div><span>Time Limit</span><strong id="brief-time"></strong></div>
-          <div><span>Reward</span><strong id="brief-reward"></strong></div>
+
+        <div class="menu-meta-bar">
+          <div class="meta-stats">
+            <div>TOTAL SOULS: <strong id="menu-total-souls">0</strong></div>
+            <div>CAMPAIGN: <strong id="menu-progress">1 / 6</strong></div>
+            <div>HELLFIRE POWER: <strong id="menu-power-lvl">LVL 1</strong></div>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button id="btn-upgrade" class="icon-btn" title="Spend 500 Souls to boost Hellfire Damage & Max HP">🔥 UPGRADE (500 SOULS)</button>
+            <button id="btn-unlock-all" class="icon-btn" title="Unlock all 6 missions">🔓 UNLOCK ALL</button>
+          </div>
         </div>
-        <div class="modal-actions">
-          <button id="btn-launch-mission" class="gk-btn primary">🔥 IGNITE &amp; RIDE</button>
+
+        <div id="mission-grid" class="mission-grid"></div>
+
+        <div class="controls-guide">
+          <div class="ctrl-item"><kbd>A/D</kbd> or <kbd>◀/▶</kbd> Steer Lane</div>
+          <div class="ctrl-item"><kbd>W/S</kbd> or <kbd>▲/▼</kbd> Throttle / Brake</div>
+          <div class="ctrl-item"><kbd>SPACE</kbd> Wheelie Jump / Boost</div>
+          <div class="ctrl-item"><kbd>J</kbd> / <kbd>L-Click</kbd> Hellfire Chain</div>
+          <div class="ctrl-item"><kbd>K</kbd> / <kbd>R-Click</kbd> Hellfire Blast</div>
+          <div class="ctrl-item"><kbd>E</kbd> / <kbd>SHIFT</kbd> Penance Stare</div>
+        </div>
+
+        <div class="cta-row">
+          <button id="btn-start-mission" class="btn-primary">IGNITE HELLCYCLE — START MISSION</button>
         </div>
       </div>
     </div>
 
-    <!-- PAUSE MODAL -->
-    <div id="screen-pause" class="overlay-screen">
-      <div class="modal-panel compact">
-        <h2>MISSION PAUSED</h2>
-        <div class="menu-buttons">
-          <button id="btn-resume" class="gk-btn primary">▶ RESUME</button>
-          <button id="btn-restart" class="gk-btn">↻ RESTART MISSION</button>
-          <button id="btn-pause-audio" class="gk-btn">🔊 AUDIO: ON</button>
-          <button id="btn-pause-levels" class="gk-btn">🗺 LEVEL SELECT</button>
-          <button id="btn-pause-menu" class="gk-btn">🏠 MAIN MENU</button>
+    <!-- PAUSE OVERLAY -->
+    <div id="pause-overlay" class="overlay-screen hidden">
+      <div class="modal-card" style="max-width:460px; text-align:center;">
+        <div class="brand-tag">ENGINE IDLING</div>
+        <h2 class="hero-title" style="font-size:2rem; margin-bottom:14px;">GAME PAUSED</h2>
+        <p style="color:var(--text-muted); margin-bottom:20px;">The flames of vengeance await your command.</p>
+        <div class="cta-row" style="flex-direction:column;">
+          <button id="btn-resume" class="btn-primary" style="width:100%;">RESUME RIDE</button>
+          <button id="btn-restart-pause" class="btn-secondary" style="width:100%;">RESTART MISSION</button>
+          <button id="btn-hub-pause" class="btn-secondary" style="width:100%;">MISSION HUB</button>
         </div>
       </div>
     </div>
 
-    <!-- MISSION SUMMARY MODAL -->
-    <div id="screen-summary" class="overlay-screen">
-      <div class="modal-panel">
-        <h2 id="summary-heading">MISSION COMPLETE</h2>
-        <div id="summary-stars" class="summary-stars">★★★</div>
-        <p id="summary-reason" class="brief-desc"></p>
-        <div class="brief-meta">
-          <div><span>Time</span><strong id="summary-time">00:00</strong></div>
-          <div><span>Coins Earned</span><strong id="summary-coins">+0</strong></div>
-          <div><span>Stunts / Kills</span><strong id="summary-score">0</strong></div>
+    <!-- MISSION COMPLETE / GAME OVER / VICTORY OVERLAY -->
+    <div id="result-overlay" class="overlay-screen hidden">
+      <div class="modal-card" style="max-width:600px; text-align:center;">
+        <div id="result-kicker" class="brand-tag">MISSION COMPLETE</div>
+        <h2 id="result-title" class="hero-title" style="font-size:2.2rem;">VENGEANCE SERVED</h2>
+        <p id="result-subtitle" style="color:#ffd6b0; margin-bottom:10px;">The guilty have paid their debt in hellfire.</p>
+
+        <div class="results-grid">
+          <div class="result-stat"><div id="res-score" class="val">0</div><div class="lbl">Souls Earned</div></div>
+          <div class="result-stat"><div id="res-kills" class="val">0</div><div class="lbl">Demons Slain</div></div>
+          <div class="result-stat"><div id="res-combo" class="val">1x</div><div class="lbl">Max Combo</div></div>
+          <div class="result-stat"><div id="res-time" class="val">00:00</div><div class="lbl">Time</div></div>
         </div>
-        <div class="modal-actions row">
-          <button id="btn-summary-next" class="gk-btn primary">NEXT MISSION ▶</button>
-          <button id="btn-summary-replay" class="gk-btn">↻ REPLAY</button>
-          <button id="btn-summary-menu" class="gk-btn">🏠 MENU</button>
+
+        <div class="cta-row">
+          <button id="btn-next-mission" class="btn-primary">NEXT MISSION ▶</button>
+          <button id="btn-replay-mission" class="btn-secondary">REPLAY</button>
+          <button id="btn-result-hub" class="btn-secondary">MISSION HUB</button>
         </div>
       </div>
     </div>
+
+    <div id="toast">Message</div>
   </div>
 
-  <script type="module" src="js/game.js"></script>
+  <script>
+    /**
+     * GHOST RIDER: HELLFIRE ROAD — GAMERKIE EDITION
+     * Modular Single-File Architecture:
+     * 1. STORAGE   - Namespaced localStorage persistence (`gamerkie_ghost_rider_`)
+     * 2. AUDIO     - Web Audio API procedural synthesizer (engine, chain, fire, penance, stingers)
+     * 3. MISSIONS  - 6 progressive campaign missions + bosses + visual themes
+     * 4. BACKDROP  - 2D Canvas layered parallax sky, moon, gothic silhouettes & embers
+     * 5. ENGINE3D  - Three.js WebGL scene, articulated 3D Ghost Rider & Hellcycle, 3D enemies & bosses
+     * 6. GAME_STATE- Core loop, combat mechanics, combo system, HUD & touch/keyboard inputs
+     */
+
+    /* =========================================================================
+       1. STORAGE MODULE
+       ========================================================================= */
+    const STORAGE = (() => {
+      const PREFIX = 'gamerkie_ghost_rider_';
+      const defaults = {
+        unlockedMission: 1,
+        unlockAll: false,
+        totalSouls: 0,
+        powerLevel: 1,
+        bestScores: {},
+        stars: {},
+        muted: false,
+        gfxQuality: 'auto' // 'auto' | 'high' | 'low'
+      };
+
+      let data = { ...defaults };
+
+      function load() {
+        try {
+          const raw = localStorage.getItem(PREFIX + 'save_v1');
+          if (raw) {
+            data = { ...defaults, ...JSON.parse(raw) };
+          }
+        } catch (e) {
+          console.warn('Storage load fallback:', e);
+        }
+        return data;
+      }
+
+      function save() {
+        try {
+          localStorage.setItem(PREFIX + 'save_v1', JSON.stringify(data));
+        } catch (e) {
+          console.warn('Storage save skipped:', e);
+        }
+      }
+
+      return {
+        load,
+        save,
+        get: () => data,
+        set: (patch) => {
+          Object.assign(data, patch);
+          save();
+        }
+      };
+    })();
+
+    /* =========================================================================
+       2. WEB AUDIO SYNTHESIZER MODULE (Zero External Audio Dependencies)
+       ========================================================================= */
+    const AUDIO = (() => {
+      let ctx = null;
+      let engineOsc = null;
+      let engineGain = null;
+      let muted = false;
+
+      function init() {
+        if (ctx) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        ctx = new AudioCtx();
+
+        // Continuous low Hellcycle V-Twin rumble
+        engineOsc = ctx.createOscillator();
+        engineGain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+
+        engineOsc.type = 'sawtooth';
+        engineOsc.frequency.value = 46;
+        filter.type = 'lowpass';
+        filter.frequency.value = 140;
+        engineGain.gain.value = 0.0001;
+
+        engineOsc.connect(filter);
+        filter.connect(engineGain);
+        engineGain.connect(ctx.destination);
+        engineOsc.start();
+      }
+
+      function unlock() {
+        if (!ctx) init();
+        if (ctx && ctx.state === 'suspended') {
+          ctx.resume().catch(() => {});
+        }
+      }
+
+      function setMuted(m) {
+        muted = m;
+        if (engineGain && ctx) {
+          engineGain.gain.setTargetAtTime(muted ? 0.0001 : 0.035, ctx.currentTime, 0.08);
+        }
+      }
+
+      function updateEngine(speedRatio, isPlaying) {
+        if (!ctx || !engineOsc || !engineGain) return;
+        if (muted || !isPlaying) {
+          engineGain.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.1);
+          return;
+        }
+        const targetFreq = 42 + speedRatio * 48;
+        engineOsc.frequency.setTargetAtTime(targetFreq, ctx.currentTime, 0.08);
+        engineGain.gain.setTargetAtTime(0.045, ctx.currentTime, 0.08);
+      }
+
+      function playNoise(duration, filterFreq, filterType = 'bandpass', gainVal = 0.25) {
+        if (muted || !ctx) return;
+        const bufferSize = Math.floor(ctx.sampleRate * duration);
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+        const whiteNoise = ctx.createBufferSource();
+        whiteNoise.buffer = buffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = filterType;
+        filter.frequency.setValueAtTime(filterFreq, ctx.currentTime);
+        filter.frequency.exponentialRampToValueAtTime(Math.max(80, filterFreq * 0.25), ctx.currentTime + duration);
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(gainVal, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+
+        whiteNoise.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        whiteNoise.start();
+      }
+
+      function playTone(freqStart, freqEnd, duration, type = 'sawtooth', gainVal = 0.2) {
+        if (muted || !ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freqStart, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), ctx.currentTime + duration);
+
+        gain.gain.setValueAtTime(gainVal, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      }
+
+      return {
+        init,
+        unlock,
+        setMuted,
+        isMuted: () => muted,
+        updateEngine,
+        chainWhip() {
+          unlock();
+          playNoise(0.18, 2200, 'highpass', 0.22);
+          playTone(680, 140, 0.16, 'triangle', 0.18);
+        },
+        hellfireBlast() {
+          unlock();
+          playNoise(0.32, 650, 'lowpass', 0.3);
+          playTone(220, 55, 0.28, 'sawtooth', 0.22);
+        },
+        penanceStare() {
+          unlock();
+          playTone(110, 880, 0.65, 'sawtooth', 0.24);
+          playTone(165, 1320, 0.65, 'sine', 0.2);
+          playNoise(0.6, 1200, 'bandpass', 0.25);
+        },
+        jumpBoost() {
+          unlock();
+          playTone(130, 390, 0.22, 'sine', 0.16);
+          playNoise(0.2, 900, 'bandpass', 0.14);
+        },
+        enemyHit() {
+          unlock();
+          playTone(190, 65, 0.12, 'square', 0.18);
+        },
+        playerHurt() {
+          unlock();
+          playTone(140, 40, 0.28, 'sawtooth', 0.3);
+          playNoise(0.25, 400, 'lowpass', 0.28);
+        },
+        victory() {
+          unlock();
+          [261.6, 329.6, 392.0, 523.2].forEach((f, idx) => {
+            setTimeout(() => playTone(f, f * 1.02, 0.35, 'triangle', 0.2), idx * 110);
+          });
+        },
+        defeat() {
+          unlock();
+          [220, 196, 164.8, 110].forEach((f, idx) => {
+            setTimeout(() => playTone(f, f * 0.9, 0.35, 'sawtooth', 0.2), idx * 130);
+          });
+        }
+      };
+    })();
+
+    /* =========================================================================
+       3. MISSIONS CAMPAIGN DATA
+       ========================================================================= */
+    const MISSIONS = [
+      {
+        id: 1,
+        code: 'MISSION 01',
+        title: 'The Contract Begins',
+        subtitle: 'Midnight Highway Run',
+        desc: 'Chase down rogue hell-bikers on the cursed highway and defeat the Road Ripper mini-boss.',
+        objectiveType: 'kills_and_boss',
+        targetKills: 8,
+        timeLimit: 110,
+        boss: { name: 'ROAD RIPPER', hp: 320, archetype: 'biker_boss', color: 0xff4500 },
+        enemyPool: ['biker', 'hazard'],
+        spawnInterval: 1.85,
+        roadSpeed: 34,
+        theme: {
+          skyTop: '#0b0308',
+          skyBottom: '#3b0a14',
+          moonColor: '#ff5e3a',
+          fogColor: 0x22070c,
+          roadColor: 0x161216,
+          stripeColor: 0xff6a00,
+          ambientLight: 0xff7744
+        }
+      },
+      {
+        id: 2,
+        code: 'MISSION 02',
+        title: 'Chains of Vengeance',
+        subtitle: 'Cathedral Courtyard',
+        desc: 'Battle waves of Demon Enforcers and Cultist Riders amid gothic ruins with chain whips.',
+        objectiveType: 'kills_and_boss',
+        targetKills: 12,
+        timeLimit: 125,
+        boss: { name: 'INQUISITOR MALAK', hp: 460, archetype: 'brute_boss', color: 0xd90429 },
+        enemyPool: ['biker', 'brute', 'hazard'],
+        spawnInterval: 1.65,
+        roadSpeed: 36,
+        theme: {
+          skyTop: '#09040f',
+          skyBottom: '#2d0b28',
+          moonColor: '#ff3b6b',
+          fogColor: 0x1c081b,
+          roadColor: 0x1a151d,
+          stripeColor: 0xff2a6d,
+          ambientLight: 0xd946ef
+        }
+      },
+      {
+        id: 3,
+        code: 'MISSION 03',
+        title: 'Penance Trial',
+        subtitle: 'Soul Collector Ambush',
+        desc: 'Survive an ambush of Shadow Stalkers and unleash Penance Stare on high-sin targets.',
+        objectiveType: 'kills_and_boss',
+        targetKills: 15,
+        timeLimit: 130,
+        boss: { name: 'VEX THE SOUL WARDEN', hp: 580, archetype: 'stalker_boss', color: 0x00e5ff },
+        enemyPool: ['stalker', 'biker', 'brute'],
+        spawnInterval: 1.48,
+        roadSpeed: 39,
+        theme: {
+          skyTop: '#030912',
+          skyBottom: '#0b2938',
+          moonColor: '#7ceeff',
+          fogColor: 0x081c26,
+          roadColor: 0x111921,
+          stripeColor: 0x00e5ff,
+          ambientLight: 0x38bdf8
+        }
+      },
+      {
+        id: 4,
+        code: 'MISSION 04',
+        title: 'Blazing Pursuit',
+        subtitle: 'Inferno Bridge & Tunnels',
+        desc: 'High-speed highway pursuit dodging lava barricades and obliterating heavy pursuers.',
+        objectiveType: 'kills_and_boss',
+        targetKills: 18,
+        timeLimit: 135,
+        boss: { name: 'IRON HELLHOUND', hp: 720, archetype: 'biker_boss', color: 0xff9e00 },
+        enemyPool: ['biker', 'brute', 'stalker', 'hazard'],
+        spawnInterval: 1.32,
+        roadSpeed: 44,
+        theme: {
+          skyTop: '#140402',
+          skyBottom: '#591606',
+          moonColor: '#ffb703',
+          fogColor: 0x330c04,
+          roadColor: 0x1c120e,
+          stripeColor: 0xff9e00,
+          ambientLight: 0xfb8500
+        }
+      },
+      {
+        id: 5,
+        code: 'MISSION 05',
+        title: "Fallen Rider's Reckoning",
+        subtitle: 'Ashen Wasteland',
+        desc: 'Endure a relentless multi-wave demon gauntlet across the burning wasteland.',
+        objectiveType: 'kills_and_boss',
+        targetKills: 22,
+        timeLimit: 145,
+        boss: { name: 'ASHEN DREADLORD', hp: 880, archetype: 'brute_boss', color: 0xff2a00 },
+        enemyPool: ['brute', 'stalker', 'biker', 'hazard'],
+        spawnInterval: 1.2,
+        roadSpeed: 45,
+        theme: {
+          skyTop: '#0d0606',
+          skyBottom: '#42120d',
+          moonColor: '#ff4d29',
+          fogColor: 0x260a08,
+          roadColor: 0x181313,
+          stripeColor: 0xff4d29,
+          ambientLight: 0xf97316
+        }
+      },
+      {
+        id: 6,
+        code: 'MISSION 06',
+        title: 'Lord of the Pit',
+        subtitle: 'Final Boss Showdown',
+        desc: 'Confront the Infernal Arch-Fiend in a multi-phase apocalypse for the fate of all souls.',
+        objectiveType: 'kills_and_boss',
+        targetKills: 14,
+        timeLimit: 160,
+        boss: { name: 'MEPHISTON, LORD OF THE PIT', hp: 1250, archetype: 'archfiend_boss', color: 0xff0033 },
+        enemyPool: ['brute', 'stalker', 'biker', 'hazard'],
+        spawnInterval: 1.25,
+        roadSpeed: 46,
+        theme: {
+          skyTop: '#080104',
+          skyBottom: '#4f0314',
+          moonColor: '#ff1e42',
+          fogColor: 0x2b020b,
+          roadColor: 0x140c10,
+          stripeColor: 0xff1e42,
+          ambientLight: 0xff2a55
+        }
+      }
+    ];
+
+    /* =========================================================================
+       4. 2D PARALLAX BACKDROP & SCREEN FX RENDERER
+       ========================================================================= */
+    const BACKDROP = (() => {
+      const bgCanvas = document.getElementById('bg-canvas');
+      const bgCtx = bgCanvas.getContext('2d');
+      const fxCanvas = document.getElementById('fx-canvas');
+      const fxCtx = fxCanvas.getContext('2d');
+
+      let w = 0, h = 0;
+      let scrollFar = 0, scrollMid = 0, scrollNear = 0;
+      const embers = [];
+      const floatingTexts = [];
+      const chainArcs = [];
+
+      // Pre-generate gothic skyline peaks
+      const spires = Array.from({ length: 28 }, (_, i) => ({
+        x: i * 95,
+        width: 45 + (i % 4) * 22,
+        height: 75 + ((i * 37) % 130),
+        hasCross: i % 3 === 0,
+        arch: i % 2 === 0
+      }));
+
+      function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        w = window.innerWidth;
+        h = window.innerHeight;
+        bgCanvas.width = Math.floor(w * dpr);
+        bgCanvas.height = Math.floor(h * dpr);
+        bgCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        fxCanvas.width = Math.floor(w * dpr);
+        fxCanvas.height = Math.floor(h * dpr);
+        fxCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        if (embers.length === 0) {
+          for (let i = 0; i < 48; i++) {
+            embers.push({
+              x: Math.random() * w,
+              y: Math.random() * h,
+              r: 1 + Math.random() * 2.5,
+              vx: -30 - Math.random() * 60,
+              vy: -20 - Math.random() * 55,
+              alpha: 0.3 + Math.random() * 0.7
+            });
+          }
+        }
+      }
+
+      function addFloatingText(x, y, text, color = '#ffbe0b', scale = 1) {
+        floatingTexts.push({ x, y, text, color, scale, life: 0.85, maxLife: 0.85 });
+      }
+
+      function addChainArc(x1, y1, x2, y2) {
+        chainArcs.push({ x1, y1, x2, y2, life: 0.22, maxLife: 0.22 });
+      }
+
+      function render(dt, speed, theme, penanceActive) {
+        const horizonY = h * 0.44;
+
+        // 1. Volcanic Sky Gradient
+        const grad = bgCtx.createLinearGradient(0, 0, 0, horizonY + 40);
+        grad.addColorStop(0, theme.skyTop);
+        grad.addColorStop(1, penanceActive ? '#053b4c' : theme.skyBottom);
+        bgCtx.fillStyle = grad;
+        bgCtx.fillRect(0, 0, w, h);
+
+        // 2. Blood Moon / Hellfire Orb
+        const moonX = w * 0.76;
+        const moonY = horizonY * 0.46;
+        const moonR = Math.min(w, h) * 0.095;
+        const moonGlow = bgCtx.createRadialGradient(moonX, moonY, moonR * 0.2, moonX, moonY, moonR * 2.6);
+        moonGlow.addColorStop(0, penanceActive ? '#a8f9ff' : theme.moonColor);
+        moonGlow.addColorStop(0.4, penanceActive ? 'rgba(0,229,255,0.28)' : 'rgba(255,70,20,0.28)');
+        moonGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        bgCtx.fillStyle = moonGlow;
+        bgCtx.beginPath();
+        bgCtx.arc(moonX, moonY, moonR * 2.6, 0, Math.PI * 2);
+        bgCtx.fill();
+
+        bgCtx.fillStyle = penanceActive ? '#e0fbff' : '#ffd8be';
+        bgCtx.beginPath();
+        bgCtx.arc(moonX, moonY, moonR * 0.72, 0, Math.PI * 2);
+        bgCtx.fill();
+
+        // 3. Far Mountain Ridge Parallax
+        scrollFar = (scrollFar + dt * speed * 0.45) % 1200;
+        bgCtx.fillStyle = 'rgba(14, 6, 10, 0.72)';
+        bgCtx.beginPath();
+        bgCtx.moveTo(0, horizonY + 10);
+        for (let x = -120; x <= w + 160; x += 80) {
+          const idx = Math.floor((x + scrollFar) / 80);
+          const peakH = 28 + Math.abs(Math.sin(idx * 1.7) * 58);
+          bgCtx.lineTo(x, horizonY - peakH);
+        }
+        bgCtx.lineTo(w, horizonY + 10);
+        bgCtx.closePath();
+        bgCtx.fill();
+
+        // 4. Mid-ground Ruined Gothic Cathedral & Highway Bridge Silhouettes
+        const spanW = spires.length * 95;
+        scrollMid = (scrollMid + dt * speed * 1.35) % spanW;
+        bgCtx.fillStyle = '#090407';
+        for (let i = 0; i < spires.length; i++) {
+          const s = spires[i];
+          let drawX = s.x - scrollMid;
+          if (drawX < -120) drawX += spanW;
+          if (drawX > w + 120) continue;
+
+          const baseH = s.height * (h / 760);
+          const topY = horizonY - baseH;
+          bgCtx.fillRect(drawX, topY, s.width, baseH + 16);
+
+          // Pointed Gothic Roof
+          bgCtx.beginPath();
+          bgCtx.moveTo(drawX - 4, topY);
+          bgCtx.lineTo(drawX + s.width * 0.5, topY - 34);
+          bgCtx.lineTo(drawX + s.width + 4, topY);
+          bgCtx.closePath();
+          bgCtx.fill();
+
+          if (s.hasCross) {
+            bgCtx.fillRect(drawX + s.width * 0.5 - 2, topY - 50, 4, 18);
+            bgCtx.fillRect(drawX + s.width * 0.5 - 7, topY - 45, 14, 3);
+          }
+        }
+
+        // Horizon Glow Strip
+        const hGlow = bgCtx.createLinearGradient(0, horizonY - 12, 0, horizonY + 24);
+        hGlow.addColorStop(0, 'rgba(255,80,0,0)');
+        hGlow.addColorStop(0.5, penanceActive ? 'rgba(0,240,255,0.45)' : 'rgba(255,75,0,0.42)');
+        hGlow.addColorStop(1, 'rgba(0,0,0,0.9)');
+        bgCtx.fillStyle = hGlow;
+        bgCtx.fillRect(0, horizonY - 12, w, 36);
+
+        // 5. Near-ground Hellfire Ember Particles
+        scrollNear += dt * speed;
+        for (let i = 0; i < embers.length; i++) {
+          const e = embers[i];
+          e.x += (e.vx - speed * 1.4) * dt;
+          e.y += e.vy * dt;
+          if (e.x < -10) { e.x = w + 10; e.y = Math.random() * h; }
+          if (e.y < -10) { e.y = h + 10; e.x = Math.random() * w; }
+
+          bgCtx.fillStyle = penanceActive
+            ? `rgba(0, 240, 255, ${e.alpha})`
+            : `rgba(255, ${110 + (i % 120)}, 20, ${e.alpha})`;
+          bgCtx.beginPath();
+          bgCtx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+          bgCtx.fill();
+        }
+
+        // 6. Render 2D FX Canvas (Chain Whips & Floating Damage Popups)
+        fxCtx.clearRect(0, 0, w, h);
+
+        for (let i = chainArcs.length - 1; i >= 0; i--) {
+          const arc = chainArcs[i];
+          arc.life -= dt;
+          if (arc.life <= 0) {
+            chainArcs.splice(i, 1);
+            continue;
+          }
+          const alpha = arc.life / arc.maxLife;
+          fxCtx.save();
+          fxCtx.strokeStyle = `rgba(255, 220, 110, ${alpha})`;
+          fxCtx.shadowColor = '#ff4500';
+          fxCtx.shadowBlur = 16;
+          fxCtx.lineWidth = 4 * alpha;
+          fxCtx.beginPath();
+          fxCtx.moveTo(arc.x1, arc.y1);
+          const midX = (arc.x1 + arc.x2) * 0.5;
+          const midY = Math.min(arc.y1, arc.y2) - 45;
+          fxCtx.quadraticCurveTo(midX, midY, arc.x2, arc.y2);
+          fxCtx.stroke();
+          fxCtx.restore();
+        }
+
+        for (let i = floatingTexts.length - 1; i >= 0; i--) {
+          const ft = floatingTexts[i];
+          ft.life -= dt;
+          ft.y -= 48 * dt;
+          if (ft.life <= 0) {
+            floatingTexts.splice(i, 1);
+            continue;
+          }
+          const alpha = Math.min(1, (ft.life / ft.maxLife) * 1.4);
+          fxCtx.save();
+          fxCtx.globalAlpha = alpha;
+          fxCtx.font = `900 ${Math.round(16 * ft.scale)}px Orbitron, sans-serif`;
+          fxCtx.textAlign = 'center';
+          fxCtx.fillStyle = '#090406';
+          fxCtx.fillText(ft.text, ft.x + 2, ft.y + 2);
+          fxCtx.fillStyle = ft.color;
+          fxCtx.fillText(ft.text, ft.x, ft.y);
+          fxCtx.restore();
+        }
+      }
+
+      return { resize, render, addFloatingText, addChainArc };
+    })();
+
+    /* =========================================================================
+       5. 3D THREE.JS HERO, HELLCYCLE, ENEMIES & BOSS ENGINE
+       ========================================================================= */
+    const ENGINE3D = (() => {
+      const canvas = document.getElementById('three-canvas');
+      let renderer, scene, camera;
+      let ambientLight, dirLight, bikePointLight;
+      let roadMesh, stripeGroup, railGroup;
+      let heroGroup, frontWheel, rearWheel, skullHead, chainRing, flameParticles = [];
+      let qualityMode = 'auto';
+
+      const stripes = [];
+      const pillars = [];
+
+      function init() {
+        renderer = new THREE.WebGLRenderer({
+          canvas,
+          alpha: true,
+          antialias: true,
+          powerPreference: 'high-performance'
+        });
+        applyQualitySetting(STORAGE.get().gfxQuality);
+
+        scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x22070c, 0.014);
+
+        camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 160);
+        camera.position.set(0, 4.4, 9.2);
+        camera.lookAt(0, 1.4, -8);
+
+        ambientLight = new THREE.AmbientLight(0xff7744, 0.85);
+        scene.add(ambientLight);
+
+        dirLight = new THREE.DirectionalLight(0xffcfa8, 1.35);
+        dirLight.position.set(8, 18, 10);
+        scene.add(dirLight);
+
+        bikePointLight = new THREE.PointLight(0xff5500, 2.8, 16);
+        bikePointLight.position.set(0, 2.2, 3.2);
+        scene.add(bikePointLight);
+
+        buildHighway();
+        buildGhostRiderHero();
+        resize();
+      }
+
+      function applyQualitySetting(mode) {
+        qualityMode = mode;
+        if (!renderer) return;
+        const rawDpr = window.devicePixelRatio || 1;
+        let targetDpr = Math.min(rawDpr, 1.75);
+        if (mode === 'low') targetDpr = 1.0;
+        if (mode === 'high') targetDpr = Math.min(rawDpr, 2.0);
+        renderer.setPixelRatio(targetDpr);
+        renderer.setSize(window.innerWidth, window.innerHeight, false);
+      }
+
+      function buildHighway() {
+        // Asphalt Cursed Highway Strip
+        const roadGeo = new THREE.PlaneGeometry(13.5, 160);
+        const roadMat = new THREE.MeshStandardMaterial({
+          color: 0x161216,
+          roughness: 0.82,
+          metalness: 0.25
+        });
+        roadMesh = new THREE.Mesh(roadGeo, roadMat);
+        roadMesh.rotation.x = -Math.PI / 2;
+        roadMesh.position.z = -62;
+        scene.add(roadMesh);
+
+        // Glowing Hellfire Lane Dividers & Guard Rails
+        stripeGroup = new THREE.Group();
+        const stripeGeo = new THREE.BoxGeometry(0.22, 0.05, 3.2);
+        const stripeMat = new THREE.MeshBasicMaterial({ color: 0xff6a00 });
+
+        for (let z = 10; z > -135; z -= 8) {
+          [-2.2, 2.2].forEach((lx) => {
+            const m = new THREE.Mesh(stripeGeo, stripeMat);
+            m.position.set(lx, 0.03, z);
+            stripeGroup.add(m);
+            stripes.push(m);
+          });
+        }
+        scene.add(stripeGroup);
+
+        // Side Hellfire Pylons for High-Speed Sense of Motion
+        railGroup = new THREE.Group();
+        const postGeo = new THREE.BoxGeometry(0.45, 1.6, 0.45);
+        const postMat = new THREE.MeshStandardMaterial({ color: 0x2a181d, roughness: 0.6 });
+        const emberCapGeo = new THREE.BoxGeometry(0.5, 0.25, 0.5);
+        const emberCapMat = new THREE.MeshBasicMaterial({ color: 0xff4500 });
+
+        for (let z = 8; z > -136; z -= 12) {
+          [-6.7, 6.7].forEach((rx) => {
+            const post = new THREE.Mesh(postGeo, postMat);
+            post.position.set(rx, 0.8, z);
+            const cap = new THREE.Mesh(emberCapGeo, emberCapMat);
+            cap.position.y = 0.9;
+            post.add(cap);
+            railGroup.add(post);
+            pillars.push(post);
+          });
+        }
+        scene.add(railGroup);
+      }
+
+      function buildGhostRiderHero() {
+        heroGroup = new THREE.Group();
+        heroGroup.position.set(0, 0, 3.2);
+
+        const metalDark = new THREE.MeshStandardMaterial({ color: 0x18181c, metalness: 0.85, roughness: 0.25 });
+        const chromeMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.95, roughness: 0.15 });
+        const fireMat = new THREE.MeshBasicMaterial({ color: 0xff6a00 });
+        const coreFireMat = new THREE.MeshBasicMaterial({ color: 0xfff3b0 });
+
+        // Blazing Wheels (Torus + Inner Fire Rim)
+        const tireGeo = new THREE.TorusGeometry(0.62, 0.2, 12, 24);
+        const rimGeo = new THREE.TorusGeometry(0.48, 0.08, 8, 20);
+
+        frontWheel = new THREE.Group();
+        frontWheel.add(new THREE.Mesh(tireGeo, metalDark));
+        frontWheel.add(new THREE.Mesh(rimGeo, fireMat));
+        frontWheel.rotation.y = Math.PI / 2;
+        frontWheel.position.set(0, 0.62, -1.35);
+        heroGroup.add(frontWheel);
+
+        rearWheel = new THREE.Group();
+        rearWheel.add(new THREE.Mesh(tireGeo, metalDark));
+        rearWheel.add(new THREE.Mesh(rimGeo, fireMat));
+        rearWheel.rotation.y = Math.PI / 2;
+        rearWheel.position.set(0, 0.62, 1.25);
+        heroGroup.add(rearWheel);
+
+        // Hellcycle Chassis & Engine Block
+        const chassis = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.55, 2.1), metalDark);
+        chassis.position.set(0, 0.85, -0.05);
+        heroGroup.add(chassis);
+
+        // Glowing Hellfire Engine Core
+        const engineCore = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.42, 0.85), fireMat);
+        engineCore.position.set(0, 0.82, -0.1);
+        heroGroup.add(engineCore);
+
+        // Extended Chopper Forks
+        const forkGeo = new THREE.CylinderGeometry(0.06, 0.06, 1.45, 8);
+        [-0.22, 0.22].forEach((fx) => {
+          const fork = new THREE.Mesh(forkGeo, chromeMat);
+          fork.position.set(fx, 1.18, -0.95);
+          fork.rotation.x = 0.52;
+          heroGroup.add(fork);
+        });
+
+        // Twin Exhaust Pipes
+        const pipeGeo = new THREE.CylinderGeometry(0.07, 0.09, 1.4, 8);
+        [-0.36, 0.36].forEach((px) => {
+          const pipe = new THREE.Mesh(pipeGeo, chromeMat);
+          pipe.rotation.x = Math.PI / 2 - 0.15;
+          pipe.position.set(px, 0.72, 0.85);
+          heroGroup.add(pipe);
+        });
+
+        // Rider Leather Jacket Torso & Spiked Shoulders
+        const torso = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.92, 0.46), metalDark);
+        torso.position.set(0, 1.56, 0.18);
+        torso.rotation.x = 0.22;
+        heroGroup.add(torso);
+
+        // Arms gripping handlebars
+        const armGeo = new THREE.CylinderGeometry(0.09, 0.08, 0.85, 8);
+        [-0.44, 0.44].forEach((ax) => {
+          const arm = new THREE.Mesh(armGeo, metalDark);
+          arm.position.set(ax, 1.62, -0.25);
+          arm.rotation.x = 1.05;
+          heroGroup.add(arm);
+        });
+
+        // Flaming Skull Head!
+        skullHead = new THREE.Group();
+        skullHead.position.set(0, 2.24, 0.05);
+
+        const cranium = new THREE.Mesh(new THREE.SphereGeometry(0.26, 14, 14), coreFireMat);
+        skullHead.add(cranium);
+
+        const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.18, 0.24), coreFireMat);
+        jaw.position.set(0, -0.16, -0.05);
+        skullHead.add(jaw);
+
+        // Glowing Eye Sockets
+        const eyeGeo = new THREE.SphereGeometry(0.055, 8, 8);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff2200 });
+        [-0.09, 0.09].forEach((ex) => {
+          const eye = new THREE.Mesh(eyeGeo, eyeMat);
+          eye.position.set(ex, 0.02, -0.22);
+          skullHead.add(eye);
+        });
+
+        // Crown of Hellfire Flames on Skull
+        for (let i = 0; i < 6; i++) {
+          const flameCone = new THREE.Mesh(
+            new THREE.ConeGeometry(0.14 - i * 0.012, 0.45 + (i % 2) * 0.15, 7),
+            i % 2 === 0 ? fireMat : coreFireMat
+          );
+          flameCone.position.set((Math.random() - 0.5) * 0.16, 0.22 + i * 0.04, 0.06 + i * 0.04);
+          flameCone.rotation.x = -0.35;
+          skullHead.add(flameCone);
+          flameParticles.push(flameCone);
+        }
+
+        heroGroup.add(skullHead);
+
+        // Hellfire Chain Whip Ring (visualized when attacking)
+        chainRing = new THREE.Mesh(
+          new THREE.TorusGeometry(2.6, 0.08, 8, 32),
+          new THREE.MeshBasicMaterial({ color: 0xffbe0b, transparent: true, opacity: 0 })
+        );
+        chainRing.rotation.x = Math.PI / 2;
+        chainRing.position.set(0, 1.1, -0.8);
+        heroGroup.add(chainRing);
+
+        scene.add(heroGroup);
+      }
+
+      function createEnemyMesh(archetype, customColor) {
+        const group = new THREE.Group();
+
+        if (archetype === 'hazard') {
+          // Spiked Hellfire Barricade
+          const barrier = new THREE.Mesh(
+            new THREE.BoxGeometry(2.5, 1.05, 0.8),
+            new THREE.MeshStandardMaterial({ color: 0x2b1216, metalness: 0.6, roughness: 0.4 })
+          );
+          barrier.position.y = 0.52;
+          group.add(barrier);
+
+          const glowStrip = new THREE.Mesh(
+            new THREE.BoxGeometry(2.55, 0.22, 0.85),
+            new THREE.MeshBasicMaterial({ color: 0xff4500 })
+          );
+          glowStrip.position.y = 0.72;
+          group.add(glowStrip);
+          return group;
+        }
+
+        const isBoss = archetype.includes('boss');
+        const scale = isBoss ? 1.85 : (archetype === 'brute' ? 1.32 : 1.0);
+        const bodyColor = customColor || (
+          archetype === 'stalker' ? 0x00e5ff :
+          archetype === 'brute' ? 0xd90429 : 0xff5400
+        );
+
+        const armorMat = new THREE.MeshStandardMaterial({
+          color: 0x160d12,
+          metalness: 0.75,
+          roughness: 0.3
+        });
+        const glowMat = new THREE.MeshBasicMaterial({ color: bodyColor });
+
+        if (archetype === 'biker' || archetype === 'biker_boss') {
+          // Enemy Hell-Chopper + Demon Rider
+          const wheelGeo = new THREE.TorusGeometry(0.55, 0.16, 8, 16);
+          const w1 = new THREE.Mesh(wheelGeo, glowMat);
+          w1.rotation.y = Math.PI / 2;
+          w1.position.set(0, 0.55, 1.1);
+          const w2 = w1.clone();
+          w2.position.z = -1.1;
+          group.add(w1, w2);
+
+          const frame = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.55, 1.9), armorMat);
+          frame.position.y = 0.8;
+          group.add(frame);
+
+          const rider = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.95, 0.5), armorMat);
+          rider.position.y = 1.5;
+          group.add(rider);
+
+          const head = new THREE.Mesh(new THREE.OctahedronGeometry(0.32, 0), glowMat);
+          head.position.y = 2.18;
+          group.add(head);
+        } else {
+          // Demon Brute / Shadow Stalker / Arch-Fiend
+          const torso = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.45, 0.75), armorMat);
+          torso.position.y = 1.25;
+          group.add(torso);
+
+          const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.42, 0), glowMat);
+          core.position.set(0, 1.35, 0.35);
+          group.add(core);
+
+          // Horns
+          const hornGeo = new THREE.ConeGeometry(0.14, 0.65, 6);
+          [-0.36, 0.36].forEach((hx) => {
+            const horn = new THREE.Mesh(hornGeo, glowMat);
+            horn.position.set(hx, 2.32, 0);
+            horn.rotation.z = hx > 0 ? -0.35 : 0.35;
+            group.add(horn);
+          });
+
+          const head = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.54, 0.56), armorMat);
+          head.position.y = 2.12;
+          group.add(head);
+        }
+
+        group.scale.setScalar(scale);
+        return group;
+      }
+
+      function createProjectileMesh(isPlayer, colorHex) {
+        const geo = isPlayer
+          ? new THREE.SphereGeometry(0.36, 10, 10)
+          : new THREE.OctahedronGeometry(0.35, 0);
+        const mat = new THREE.MeshBasicMaterial({ color: colorHex });
+        return new THREE.Mesh(geo, mat);
+      }
+
+      function applyMissionTheme(theme) {
+        if (!scene) return;
+        scene.fog.color.setHex(theme.fogColor);
+        ambientLight.color.setHex(theme.ambientLight);
+        roadMesh.material.color.setHex(theme.roadColor);
+        stripes.forEach((s) => s.material.color.setHex(theme.stripeColor));
+      }
+
+      function updateVisuals(dt, state) {
+        if (!renderer || !scene || !camera) return;
+
+        // Scroll Road Stripes & Side Pylons
+        const moveZ = state.currentSpeed * dt;
+        for (let i = 0; i < stripes.length; i++) {
+          stripes[i].position.z += moveZ;
+          if (stripes[i].position.z > 14) stripes[i].position.z -= 144;
+        }
+        for (let i = 0; i < pillars.length; i++) {
+          pillars[i].position.z += moveZ;
+          if (pillars[i].position.z > 14) pillars[i].position.z -= 144;
+        }
+
+        // Hero Position, Lean, Jump & Wheelie Physics
+        heroGroup.position.x = state.player.x;
+        heroGroup.position.y = state.player.y;
+        heroGroup.rotation.z = THREE.MathUtils.lerp(heroGroup.rotation.z, -state.player.vx * 0.045, 0.18);
+        const targetPitch = state.player.y > 0.05 ? 0.28 : (state.player.boosting ? 0.16 : 0);
+        heroGroup.rotation.x = THREE.MathUtils.lerp(heroGroup.rotation.x, targetPitch, 0.15);
+
+        // Spin Wheels
+        frontWheel.rotation.x -= moveZ * 0.85;
+        rearWheel.rotation.x -= moveZ * 0.85;
+
+        // Animate Skull Crown Flames
+        const t = performance.now() * 0.012;
+        for (let i = 0; i < flameParticles.length; i++) {
+          flameParticles[i].scale.y = 0.8 + Math.sin(t + i * 1.3) * 0.32;
+        }
+
+        // Chain Whip Ring Flash
+        if (state.player.chainTimer > 0) {
+          chainRing.material.opacity = Math.min(0.95, state.player.chainTimer * 4);
+          chainRing.rotation.z += dt * 22;
+          chainRing.scale.setScalar(1 + (0.25 - state.player.chainTimer) * 1.6);
+        } else {
+          chainRing.material.opacity = 0;
+        }
+
+        // Dynamic Light & Camera Shake
+        bikePointLight.position.set(state.player.x, state.player.y + 2.2, 3.2);
+        bikePointLight.color.setHex(state.player.penanceTimer > 0 ? 0x00f0ff : 0xff5500);
+        bikePointLight.intensity = state.player.penanceTimer > 0 ? 4.5 : 2.8;
+
+        const shakeX = state.cameraShake > 0 ? (Math.random() - 0.5) * state.cameraShake : 0;
+        const shakeY = state.cameraShake > 0 ? (Math.random() - 0.5) * state.cameraShake : 0;
+        camera.position.x = THREE.MathUtils.lerp(camera.position.x, state.player.x * 0.38, 0.1) + shakeX;
+        camera.position.y = 4.35 + state.player.y * 0.35 + shakeY;
+        camera.lookAt(state.player.x * 0.22, 1.35, -8);
+
+        renderer.render(scene, camera);
+      }
+
+      function worldToScreen(vec3) {
+        const v = vec3.clone().project(camera);
+        return {
+          x: (v.x * 0.5 + 0.5) * window.innerWidth,
+          y: (-(v.y * 0.5) + 0.5) * window.innerHeight
+        };
+      }
+
+      function resize() {
+        if (!renderer || !camera) return;
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        applyQualitySetting(qualityMode);
+      }
+
+      return {
+        init,
+        resize,
+        applyQualitySetting,
+        applyMissionTheme,
+        createEnemyMesh,
+        createProjectileMesh,
+        updateVisuals,
+        worldToScreen,
+        getScene: () => scene
+      };
+    })();
+
+    /* =========================================================================
+       6. CORE GAME STATE, LOGIC, CONTROLS & UI CONTROLLER
+       ========================================================================= */
+    const GAME = (() => {
+      const LANE_LIMIT = 4.6;
+      const STATE = {
+        mode: 'MENU', // 'MENU' | 'PLAYING' | 'PAUSED' | 'RESULTS'
+        selectedMissionId: 1,
+        mission: MISSIONS[0],
+        elapsed: 0,
+        score: 0,
+        kills: 0,
+        combo: 1,
+        maxCombo: 1,
+        comboTimer: 0,
+        currentSpeed: 34,
+        spawnTimer: 1.0,
+        cameraShake: 0,
+        bossSpawned: false,
+        boss: null,
+        player: {
+          x: 0,
+          y: 0,
+          vx: 0,
+          vy: 0,
+          hp: 100,
+          maxHp: 100,
+          penance: 0,
+          penanceTimer: 0,
+          chainCooldown: 0,
+          chainTimer: 0,
+          blastCooldown: 0,
+          boostTimer: 0,
+          invulnTimer: 0
+        },
+        enemies: [],
+        projectiles: [],
+        keys: {}
+      };
+
+      // DOM References
+      const el = {
+        menuOverlay: document.getElementById('menu-overlay'),
+        pauseOverlay: document.getElementById('pause-overlay'),
+        resultOverlay: document.getElementById('result-overlay'),
+        missionGrid: document.getElementById('mission-grid'),
+        hpText: document.getElementById('hp-text'),
+        hpFill: document.getElementById('hp-fill'),
+        penanceText: document.getElementById('penance-text'),
+        penanceFill: document.getElementById('penance-fill'),
+        hudMissionNum: document.getElementById('hud-mission-num'),
+        hudMissionName: document.getElementById('hud-mission-name'),
+        hudObjective: document.getElementById('hud-objective'),
+        missionProgressFill: document.getElementById('mission-progress-fill'),
+        hudScore: document.getElementById('hud-score'),
+        hudTimer: document.getElementById('hud-timer'),
+        comboBadge: document.getElementById('combo-badge'),
+        bossHud: document.getElementById('boss-hud'),
+        bossName: document.getElementById('boss-name'),
+        bossHpText: document.getElementById('boss-hp-text'),
+        bossHpFill: document.getElementById('boss-hp-fill'),
+        centerBanner: document.getElementById('center-banner'),
+        bannerTitle: document.getElementById('banner-title'),
+        bannerSub: document.getElementById('banner-sub'),
+        screenFlash: document.getElementById('screen-flash'),
+        toast: document.getElementById('toast'),
+        tPenance: document.getElementById('t-penance')
+      };
+
+      let bannerTimeout = null;
+      let toastTimeout = null;
+
+      function showToast(msg) {
+        el.toast.textContent = msg;
+        el.toast.classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => el.toast.classList.remove('show'), 2200);
+      }
+
+      function showBanner(title, sub) {
+        el.bannerTitle.textContent = title;
+        el.bannerSub.textContent = sub;
+        el.centerBanner.classList.add('show');
+        clearTimeout(bannerTimeout);
+        bannerTimeout = setTimeout(() => el.centerBanner.classList.remove('show'), 2100);
+      }
+
+      function formatTime(sec) {
+        const s = Math.max(0, Math.floor(sec));
+        const mm = String(Math.floor(s / 60)).padStart(2, '0');
+        const ss = String(s % 60).padStart(2, '0');
+        return `${mm}:${ss}`;
+      }
+
+      function getPowerMultiplier() {
+        return 1 + (STORAGE.get().powerLevel - 1) * 0.22;
+      }
+
+      /* -----------------------------------------------------------------------
+         Menu & Persistence Rendering
+         ----------------------------------------------------------------------- */
+      function renderMissionHub() {
+        const save = STORAGE.get();
+        document.getElementById('menu-total-souls').textContent = save.totalSouls.toLocaleString();
+        document.getElementById('menu-progress').textContent = `${Math.min(6, save.unlockedMission)} / 6`;
+        document.getElementById('menu-power-lvl').textContent = `LVL ${save.powerLevel}`;
+
+        el.missionGrid.innerHTML = '';
+        MISSIONS.forEach((m) => {
+          const isUnlocked = save.unlockAll || m.id <= save.unlockedMission;
+          const card = document.createElement('div');
+          card.className = `mission-card ${isUnlocked ? '' : 'locked'} ${STATE.selectedMissionId === m.id ? 'selected' : ''}`;
+
+          const best = save.bestScores[m.id] || 0;
+          const stars = save.stars[m.id] || 0;
+          const starStr = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+
+          card.innerHTML = `
+            <div class="m-card-top">
+              <span>${m.code} • ${m.subtitle.toUpperCase()}</span>
+              <span>${isUnlocked ? starStr : '🔒 LOCKED'}</span>
+            </div>
+            <div class="m-card-title">${m.title}</div>
+            <div class="m-card-desc">${m.desc}</div>
+            <div class="m-card-foot">
+              <span>BOSS: ${m.boss.name}</span>
+              <span>BEST: ${best}</span>
+            </div>
+          `;
+
+          if (isUnlocked) {
+            card.addEventListener('click', () => {
+              AUDIO.unlock();
+              STATE.selectedMissionId = m.id;
+              renderMissionHub();
+            });
+          }
+          el.missionGrid.appendChild(card);
+        });
+      }
+
+      /* -----------------------------------------------------------------------
+         Mission Initialization & Cleanup
+         ----------------------------------------------------------------------- */
+      function clearEntities() {
+        const scene = ENGINE3D.getScene();
+        STATE.enemies.forEach((e) => scene.remove(e.mesh));
+        STATE.projectiles.forEach((p) => scene.remove(p.mesh));
+        if (STATE.boss) {
+          scene.remove(STATE.boss.mesh);
+          STATE.boss = null;
+        }
+        STATE.enemies = [];
+        STATE.projectiles = [];
+        el.bossHud.classList.remove('active');
+      }
+
+      function startMission(missionId) {
+        AUDIO.unlock();
+        clearEntities();
+
+        const mission = MISSIONS.find((m) => m.id === missionId) || MISSIONS[0];
+        STATE.mission = mission;
+        STATE.selectedMissionId = mission.id;
+        STATE.mode = 'PLAYING';
+        STATE.elapsed = 0;
+        STATE.score = 0;
+        STATE.kills = 0;
+        STATE.combo = 1;
+        STATE.maxCombo = 1;
+        STATE.comboTimer = 0;
+        STATE.currentSpeed = mission.roadSpeed;
+        STATE.spawnTimer = 0.8;
+        STATE.cameraShake = 0;
+        STATE.bossSpawned = false;
+
+        const maxHp = 100 + (STORAGE.get().powerLevel - 1) * 20;
+        Object.assign(STATE.player, {
+          x: 0,
+          y: 0,
+          vx: 0,
+          vy: 0,
+          hp: maxHp,
+          maxHp,
+          penance: 25,
+          penanceTimer: 0,
+          chainCooldown: 0,
+          chainTimer: 0,
+          blastCooldown: 0,
+          boostTimer: 0,
+          invulnTimer: 1.0
+        });
+
+        ENGINE3D.applyMissionTheme(mission.theme);
+
+        el.menuOverlay.classList.add('hidden');
+        el.pauseOverlay.classList.add('hidden');
+        el.resultOverlay.classList.add('hidden');
+
+        el.hudMissionNum.textContent = mission.code;
+        el.hudMissionName.textContent = mission.title.toUpperCase();
+        showBanner(mission.title.toUpperCase(), mission.subtitle.toUpperCase());
+        updateHUD();
+      }
+
+      /* -----------------------------------------------------------------------
+         Combat Actions (Chain Whip, Hellfire Blast, Penance Stare, Boost/Jump)
+         ----------------------------------------------------------------------- */
+      function triggerJumpBoost() {
+        if (STATE.mode !== 'PLAYING') return;
+        if (STATE.player.y <= 0.02) {
+          STATE.player.vy = 11.2;
+          STATE.player.boostTimer = 0.75;
+          AUDIO.jumpBoost();
+        }
+      }
+
+      function triggerChainWhip() {
+        if (STATE.mode !== 'PLAYING' || STATE.player.chainCooldown > 0) return;
+        STATE.player.chainCooldown = 0.36;
+        STATE.player.chainTimer = 0.25;
+        AUDIO.chainWhip();
+
+        const dmg = Math.round(48 * getPowerMultiplier());
+        const heroPos = new THREE.Vector3(STATE.player.x, STATE.player.y + 1.2, 3.2);
+        const heroScreen = ENGINE3D.worldToScreen(heroPos);
+        let hitAny = false;
+
+        // Hit enemies in wide melee arc in front/beside Ghost Rider
+        for (let i = STATE.enemies.length - 1; i >= 0; i--) {
+          const en = STATE.enemies[i];
+          if (en.type === 'hazard') continue;
+          const dz = 3.2 - en.z;
+          const dx = Math.abs(en.x - STATE.player.x);
+          if (dz >= -2.5 && dz <= 9.5 && dx <= 4.3) {
+            const enScreen = ENGINE3D.worldToScreen(en.mesh.position);
+            BACKDROP.addChainArc(heroScreen.x, heroScreen.y, enScreen.x, enScreen.y);
+            damageEnemy(en, i, dmg, '#ffbe0b');
+            hitAny = true;
+          }
+        }
+
+        // Hit Boss if close
+        if (STATE.boss) {
+          const dz = 3.2 - STATE.boss.z;
+          const dx = Math.abs(STATE.boss.x - STATE.player.x);
+          if (dz >= -2.5 && dz <= 10.5 && dx <= 4.8) {
+            const bScreen = ENGINE3D.worldToScreen(STATE.boss.mesh.position);
+            BACKDROP.addChainArc(heroScreen.x, heroScreen.y, bScreen.x, bScreen.y);
+            damageBoss(dmg, '#ffbe0b');
+            hitAny = true;
+          }
+        }
+
+        if (hitAny) {
+          STATE.cameraShake = 0.16;
+          addPenance(10);
+        }
+      }
+
+      function triggerHellfireBlast() {
+        if (STATE.mode !== 'PLAYING' || STATE.player.blastCooldown > 0) return;
+        STATE.player.blastCooldown = 0.55;
+        AUDIO.hellfireBlast();
+
+        const mesh = ENGINE3D.createProjectileMesh(true, 0xff6a00);
+        mesh.position.set(STATE.player.x, STATE.player.y + 1.3, 1.8);
+        ENGINE3D.getScene().add(mesh);
+
+        STATE.projectiles.push({
+          fromPlayer: true,
+          x: STATE.player.x,
+          y: STATE.player.y + 1.3,
+          z: 1.8,
+          vz: -68,
+          vx: 0,
+          damage: Math.round(62 * getPowerMultiplier()),
+          mesh
+        });
+      }
+
+      function triggerPenanceStare() {
+        if (STATE.mode !== 'PLAYING') return;
+        if (STATE.player.penance < 100) {
+          showToast('PENANCE METER NOT FULL (100%)');
+          return;
+        }
+
+        STATE.player.penance = 0;
+        STATE.player.penanceTimer = 3.2;
+        STATE.player.invulnTimer = 3.2;
+        STATE.cameraShake = 0.42;
+        AUDIO.penanceStare();
+        showBanner('PENANCE STARE!', 'LOOK INTO MY EYES — YOUR SOUL IS STAINED');
+
+        const heroScreen = ENGINE3D.worldToScreen(new THREE.Vector3(STATE.player.x, 2.2, 3.2));
+        const stareDmg = Math.round(165 * getPowerMultiplier());
+
+        for (let i = STATE.enemies.length - 1; i >= 0; i--) {
+          const en = STATE.enemies[i];
+          if (en.type === 'hazard') continue;
+          if (en.z > -45) {
+            const enScreen = ENGINE3D.worldToScreen(en.mesh.position);
+            BACKDROP.addChainArc(heroScreen.x, heroScreen.y, enScreen.x, enScreen.y);
+            damageEnemy(en, i, stareDmg, '#00f0ff');
+          }
+        }
+
+        if (STATE.boss) {
+          const bScreen = ENGINE3D.worldToScreen(STATE.boss.mesh.position);
+          BACKDROP.addChainArc(heroScreen.x, heroScreen.y, bScreen.x, bScreen.y);
+          damageBoss(Math.round(stareDmg * 1.15), '#00f0ff');
+        }
+      }
+
+      function addPenance(amount) {
+        STATE.player.penance = Math.min(100, STATE.player.penance + amount);
+      }
+
+      function registerKill(points, worldPos) {
+        STATE.kills++;
+        STATE.combo = Math.min(12, STATE.combo + 1);
+        STATE.maxCombo = Math.max(STATE.maxCombo, STATE.combo);
+        STATE.comboTimer = 3.6;
+        const gained = points * STATE.combo;
+        STATE.score += gained;
+        addPenance(14);
+
+        const scr = ENGINE3D.worldToScreen(worldPos);
+        BACKDROP.addFloatingText(scr.x, scr.y - 24, `+${gained} SOULS`, '#ff9e00', 1.05);
+      }
+
+      function damageEnemy(en, index, dmg, color) {
+        en.hp -= dmg;
+        AUDIO.enemyHit();
+        const scr = ENGINE3D.worldToScreen(en.mesh.position);
+        BACKDROP.addFloatingText(scr.x, scr.y, `-${dmg}`, color, 0.95);
+
+        if (en.hp <= 0) {
+          ENGINE3D.getScene().remove(en.mesh);
+          STATE.enemies.splice(index, 1);
+          registerKill(en.points, en.mesh.position);
+        }
+      }
+
+      function damageBoss(dmg, color) {
+        if (!STATE.boss) return;
+        STATE.boss.hp = Math.max(0, STATE.boss.hp - dmg);
+        AUDIO.enemyHit();
+        const scr = ENGINE3D.worldToScreen(STATE.boss.mesh.position);
+        BACKDROP.addFloatingText(scr.x, scr.y - 18, `-${dmg}`, color, 1.15);
+
+        // Phase 2 transition at 50% HP
+        if (!STATE.boss.phase2 && STATE.boss.hp <= STATE.boss.maxHp * 0.5 && STATE.boss.hp > 0) {
+          STATE.boss.phase2 = true;
+          STATE.cameraShake = 0.35;
+          showBanner(`${STATE.boss.name} ENRAGED!`, 'HELLFIRE PHASE II');
+        }
+
+        if (STATE.boss.hp <= 0) {
+          const bossPos = STATE.boss.mesh.position.clone();
+          ENGINE3D.getScene().remove(STATE.boss.mesh);
+          STATE.boss = null;
+          el.bossHud.classList.remove('active');
+          registerKill(500, bossPos);
+          completeMission(true);
+        }
+      }
+
+      function damagePlayer(amount) {
+        if (STATE.player.invulnTimer > 0 || STATE.mode !== 'PLAYING') return;
+        STATE.player.hp = Math.max(0, STATE.player.hp - amount);
+        STATE.player.invulnTimer = 0.85;
+        STATE.combo = 1;
+        STATE.cameraShake = 0.32;
+        AUDIO.playerHurt();
+
+        el.screenFlash.style.opacity = '1';
+        setTimeout(() => { el.screenFlash.style.opacity = '0'; }, 140);
+
+        if (STATE.player.hp <= 0) {
+          completeMission(false);
+        }
+      }
+
+      /* -----------------------------------------------------------------------
+         Spawning Enemies & Bosses
+         ----------------------------------------------------------------------- */
+      function spawnWaveEntity() {
+        const pool = STATE.mission.enemyPool;
+        const type = pool[Math.floor(Math.random() * pool.length)];
+        const laneX = (Math.random() * 2 - 1) * (LANE_LIMIT - 0.5);
+        const mesh = ENGINE3D.createEnemyMesh(type);
+        mesh.position.set(laneX, 0, -78);
+        ENGINE3D.getScene().add(mesh);
+
+        const hpScale = 1 + (STATE.mission.id - 1) * 0.16;
+        const stats = {
+          hazard: { hp: 999, speed: 0, points: 0 },
+          biker: { hp: Math.round(55 * hpScale), speed: 14, points: 60 },
+          brute: { hp: Math.round(105 * hpScale), speed: 9, points: 100 },
+          stalker: { hp: Math.round(75 * hpScale), speed: 18, points: 90 }
+        }[type];
+
+        STATE.enemies.push({
+          type,
+          x: laneX,
+          z: -78,
+          vx: (Math.random() - 0.5) * (type === 'stalker' ? 5.5 : 2.2),
+          hp: stats.hp,
+          maxHp: stats.hp,
+          speedOffset: stats.speed,
+          points: stats.points,
+          shootTimer: 1.5 + Math.random() * 1.8,
+          mesh
+        });
+      }
+
+      function spawnBoss() {
+        STATE.bossSpawned = true;
+        const cfg = STATE.mission.boss;
+        const mesh = ENGINE3D.createEnemyMesh(cfg.archetype, cfg.color);
+        mesh.position.set(0, 0, -55);
+        ENGINE3D.getScene().add(mesh);
+
+        STATE.boss = {
+          name: cfg.name,
+          x: 0,
+          z: -55,
+          hp: cfg.hp,
+          maxHp: cfg.hp,
+          phase2: false,
+          attackTimer: 1.8,
+          strafePhase: 0,
+          mesh
+        };
+
+        el.bossName.textContent = cfg.name;
+        el.bossHud.classList.add('active');
+        showBanner(`BOSS APPROACHES: ${cfg.name}`, 'USE CHAIN, BLAST & PENANCE STARE!');
+      }
+
+      /* -----------------------------------------------------------------------
+         Main Simulation Step
+         ----------------------------------------------------------------------- */
+      function update(dt) {
+        if (STATE.mode !== 'PLAYING') return;
+
+        STATE.elapsed += dt;
+        const timeLeft = STATE.mission.timeLimit - STATE.elapsed;
+        if (timeLeft <= 0) {
+          completeMission(false);
+          return;
+        }
+
+        // Cooldowns & Timers
+        STATE.player.chainCooldown = Math.max(0, STATE.player.chainCooldown - dt);
+        STATE.player.chainTimer = Math.max(0, STATE.player.chainTimer - dt);
+        STATE.player.blastCooldown = Math.max(0, STATE.player.blastCooldown - dt);
+        STATE.player.boostTimer = Math.max(0, STATE.player.boostTimer - dt);
+        STATE.player.invulnTimer = Math.max(0, STATE.player.invulnTimer - dt);
+        STATE.player.penanceTimer = Math.max(0, STATE.player.penanceTimer - dt);
+        STATE.cameraShake = Math.max(0, STATE.cameraShake - dt * 1.4);
+
+        if (STATE.comboTimer > 0) {
+          STATE.comboTimer -= dt;
+          if (STATE.comboTimer <= 0) STATE.combo = 1;
+        }
+
+        // Player Horizontal Steering & Throttle
+        let steerInput = 0;
+        if (STATE.keys['ArrowLeft'] || STATE.keys['KeyA'] || STATE.keys['TouchLeft']) steerInput -= 1;
+        if (STATE.keys['ArrowRight'] || STATE.keys['KeyD'] || STATE.keys['TouchRight']) steerInput += 1;
+
+        let throttleInput = 0;
+        if (STATE.keys['ArrowUp'] || STATE.keys['KeyW']) throttleInput += 1;
+        if (STATE.keys['ArrowDown'] || STATE.keys['KeyS']) throttleInput -= 1;
+
+        const targetVx = steerInput * 10.5;
+        STATE.player.vx += (targetVx - STATE.player.vx) * Math.min(1, dt * 12);
+        STATE.player.x = Math.max(-LANE_LIMIT, Math.min(LANE_LIMIT, STATE.player.x + STATE.player.vx * dt));
+
+        // Vertical Jump / Gravity
+        if (STATE.player.y > 0 || STATE.player.vy > 0) {
+          STATE.player.y += STATE.player.vy * dt;
+          STATE.player.vy -= 26 * dt;
+          if (STATE.player.y <= 0) {
+            STATE.player.y = 0;
+            STATE.player.vy = 0;
+          }
+        }
+
+        // Road Speed
+        const boostBonus = STATE.player.boostTimer > 0 ? 14 : 0;
+        const targetSpeed = STATE.mission.roadSpeed + throttleInput * 9 + boostBonus;
+        STATE.currentSpeed += (targetSpeed - STATE.currentSpeed) * Math.min(1, dt * 6);
+        AUDIO.updateEngine((STATE.currentSpeed - 20) / 40, true);
+
+        // Spawn Enemies or Trigger Boss
+        if (!STATE.bossSpawned && STATE.kills >= STATE.mission.targetKills) {
+          spawnBoss();
+        }
+
+        STATE.spawnTimer -= dt;
+        if (STATE.spawnTimer <= 0) {
+          const maxActive = STATE.bossSpawned ? 2 : 6;
+          if (STATE.enemies.length < maxActive) {
+            spawnWaveEntity();
+          }
+          STATE.spawnTimer = STATE.mission.spawnInterval * (STATE.bossSpawned ? 1.5 : 1);
+        }
+
+        // Update Enemies
+        for (let i = STATE.enemies.length - 1; i >= 0; i--) {
+          const en = STATE.enemies[i];
+          const relSpeed = STATE.currentSpeed - en.speedOffset;
+          en.z += relSpeed * dt;
+
+          if (en.type !== 'hazard') {
+            en.x += en.vx * dt;
+            if (Math.abs(en.x) > LANE_LIMIT) en.vx *= -1;
+
+            // Enemy Ranged Fire
+            en.shootTimer -= dt;
+            if (en.shootTimer <= 0 && en.z > -48 && en.z < -8) {
+              en.shootTimer = 2.4 + Math.random() * 1.4;
+              const pMesh = ENGINE3D.createProjectileMesh(false, 0xff2a6d);
+              pMesh.position.set(en.x, 1.2, en.z + 1.2);
+              ENGINE3D.getScene().add(pMesh);
+              const aimVx = (STATE.player.x - en.x) * 0.45;
+              STATE.projectiles.push({
+                fromPlayer: false,
+                x: en.x,
+                y: 1.2,
+                z: en.z + 1.2,
+                vx: aimVx,
+                vz: 26,
+                damage: 14,
+                mesh: pMesh
+              });
+            }
+          }
+
+          en.mesh.position.set(en.x, 0, en.z);
+
+          // Player Collision Check (jump clears hazards!)
+          const dz = Math.abs(en.z - 3.2);
+          const dx = Math.abs(en.x - STATE.player.x);
+          if (dz < 1.45 && dx < 1.25) {
+            if (en.type === 'hazard' && STATE.player.y > 0.85) {
+              // Cleanly jumped over barricade!
+              if (!en.cleared) {
+                en.cleared = true;
+                STATE.score += 35 * STATE.combo;
+                const scr = ENGINE3D.worldToScreen(en.mesh.position);
+                BACKDROP.addFloatingText(scr.x, scr.y - 20, 'STUNT JUMP +35', '#7ceeff', 0.9);
+              }
+            } else {
+              damagePlayer(en.type === 'hazard' ? 18 : 15);
+              if (en.type !== 'hazard') {
+                damageEnemy(en, i, 35, '#ff6a00');
+              }
+            }
+          }
+
+          // Despawn past camera
+          if (en.z > 13 && STATE.enemies[i] === en) {
+            ENGINE3D.getScene().remove(en.mesh);
+            STATE.enemies.splice(i, 1);
+          }
+        }
+
+        // Update Boss AI & Attacks
+        if (STATE.boss) {
+          const b = STATE.boss;
+          b.z += ( -8.5 - b.z ) * Math.min(1, dt * 2.2);
+          b.strafePhase += dt * (b.phase2 ? 2.4 : 1.5);
+          b.x = Math.sin(b.strafePhase) * (LANE_LIMIT - 0.8);
+          b.mesh.position.set(b.x, Math.abs(Math.sin(b.strafePhase * 2)) * 0.35, b.z);
+
+          b.attackTimer -= dt;
+          if (b.attackTimer <= 0) {
+            b.attackTimer = b.phase2 ? 1.15 : 1.75;
+            const spread = b.phase2 ? [-3.2, 0, 3.2] : [-1.8, 1.8];
+            spread.forEach((sx) => {
+              const pMesh = ENGINE3D.createProjectileMesh(false, 0xff0033);
+              pMesh.position.set(b.x, 1.5, b.z + 1.8);
+              ENGINE3D.getScene().add(pMesh);
+              STATE.projectiles.push({
+                fromPlayer: false,
+                x: b.x,
+                y: 1.5,
+                z: b.z + 1.8,
+                vx: sx + (STATE.player.x - b.x) * 0.35,
+                vz: b.phase2 ? 32 : 26,
+                damage: 18,
+                mesh: pMesh
+              });
+            });
+          }
+        }
+
+        // Update Projectiles
+        for (let i = STATE.projectiles.length - 1; i >= 0; i--) {
+          const p = STATE.projectiles[i];
+          p.x += p.vx * dt;
+          p.z += p.vz * dt;
+          p.mesh.position.set(p.x, p.y, p.z);
+          p.mesh.rotation.y += dt * 8;
+
+          let consumed = false;
+
+          if (p.fromPlayer) {
+            // Check hit against enemies
+            for (let j = STATE.enemies.length - 1; j >= 0; j--) {
+              const en = STATE.enemies[j];
+              if (en.type === 'hazard') continue;
+              if (Math.abs(en.z - p.z) < 1.8 && Math.abs(en.x - p.x) < 1.5) {
+                damageEnemy(en, j, p.damage, '#ff9e00');
+                consumed = true;
+                break;
+              }
+            }
+            // Check hit against boss
+            if (!consumed && STATE.boss) {
+              if (Math.abs(STATE.boss.z - p.z) < 2.4 && Math.abs(STATE.boss.x - p.x) < 2.2) {
+                damageBoss(p.damage, '#ff9e00');
+                consumed = true;
+              }
+            }
+          } else {
+            // Enemy projectile hitting player
+            if (Math.abs(p.z - 3.2) < 1.2 && Math.abs(p.x - STATE.player.x) < 1.05 && STATE.player.y < 1.25) {
+              damagePlayer(p.damage);
+              consumed = true;
+            }
+          }
+
+          if (consumed || p.z < -85 || p.z > 14) {
+            ENGINE3D.getScene().remove(p.mesh);
+            STATE.projectiles.splice(i, 1);
+          }
+        }
+
+        updateHUD();
+      }
+
+      function updateHUD() {
+        const p = STATE.player;
+        el.hpText.textContent = `${Math.ceil(p.hp)} / ${p.maxHp}`;
+        el.hpFill.style.width = `${(p.hp / p.maxHp) * 100}%`;
+
+        el.penanceText.textContent = `${Math.floor(p.penance)}%`;
+        el.penanceFill.style.width = `${p.penance}%`;
+        el.tPenance.classList.toggle('special-ready', p.penance >= 100);
+
+        el.hudScore.textContent = STATE.score.toLocaleString();
+        el.hudTimer.textContent = formatTime(STATE.mission.timeLimit - STATE.elapsed);
+        el.comboBadge.textContent = `${STATE.combo}x`;
+
+        if (STATE.boss) {
+          el.hudObjective.textContent = `DEFEAT ${STATE.boss.name}`;
+          el.missionProgressFill.style.width = '100%';
+          const bPct = Math.ceil((STATE.boss.hp / STATE.boss.maxHp) * 100);
+          el.bossHpText.textContent = `${bPct}%`;
+          el.bossHpFill.style.width = `${bPct}%`;
+        } else {
+          el.hudObjective.textContent = `Slay Demons: ${STATE.kills} / ${STATE.mission.targetKills}`;
+          el.missionProgressFill.style.width = `${Math.min(100, (STATE.kills / STATE.mission.targetKills) * 100)}%`;
+        }
+      }
+
+      /* -----------------------------------------------------------------------
+         Pause & End-of-Mission Flow
+         ----------------------------------------------------------------------- */
+      function togglePause() {
+        if (STATE.mode === 'PLAYING') {
+          STATE.mode = 'PAUSED';
+          AUDIO.updateEngine(0, false);
+          el.pauseOverlay.classList.remove('hidden');
+        } else if (STATE.mode === 'PAUSED') {
+          STATE.mode = 'PLAYING';
+          el.pauseOverlay.classList.add('hidden');
+        }
+      }
+
+      function returnToHub() {
+        STATE.mode = 'MENU';
+        AUDIO.updateEngine(0, false);
+        clearEntities();
+        el.pauseOverlay.classList.add('hidden');
+        el.resultOverlay.classList.add('hidden');
+        el.menuOverlay.classList.remove('hidden');
+        renderMissionHub();
+      }
+
+      function completeMission(won) {
+        STATE.mode = 'RESULTS';
+        AUDIO.updateEngine(0, false);
+
+        const save = STORAGE.get();
+        const mId = STATE.mission.id;
+        const timeBonus = won ? Math.max(0, Math.floor((STATE.mission.timeLimit - STATE.elapsed) * 5)) : 0;
+        const finalScore = STATE.score + timeBonus;
+
+        if (won) {
+          AUDIO.victory();
+          const hpPct = STATE.player.hp / STATE.player.maxHp;
+          const earnedStars = hpPct > 0.7 ? 3 : (hpPct > 0.35 ? 2 : 1);
+
+          const nextUnlocked = Math.min(6, Math.max(save.unlockedMission, mId + 1));
+          const bestScores = { ...save.bestScores, [mId]: Math.max(save.bestScores[mId] || 0, finalScore) };
+          const stars = { ...save.stars, [mId]: Math.max(save.stars[mId] || 0, earnedStars) };
+
+          STORAGE.set({
+            unlockedMission: nextUnlocked,
+            totalSouls: save.totalSouls + finalScore,
+            bestScores,
+            stars
+          });
+
+          const isFinal = mId === 6;
+          document.getElementById('result-kicker').textContent = isFinal ? 'CAMPAIGN VICTORY!' : `${STATE.mission.code} CLEARED`;
+          document.getElementById('result-title').textContent = isFinal ? 'LORD OF HELLFIRE' : 'VENGEANCE SERVED';
+          document.getElementById('result-subtitle').textContent = isFinal
+            ? 'Mephiston has fallen! You rule the Hellfire Road!'
+            : 'The guilty have paid their debt in hellfire.';
+
+          const nextBtn = document.getElementById('btn-next-mission');
+          nextBtn.style.display = isFinal ? 'none' : 'inline-block';
+        } else {
+          AUDIO.defeat();
+          STORAGE.set({ totalSouls: save.totalSouls + Math.floor(STATE.score * 0.5) });
+          document.getElementById('result-kicker').textContent = 'SOUL EXTINGUISHED';
+          document.getElementById('result-title').textContent = 'GAME OVER';
+          document.getElementById('result-subtitle').textContent = 'The darkness overwhelmed your flames. Rise again!';
+          document.getElementById('btn-next-mission').style.display = 'none';
+        }
+
+        document.getElementById('res-score').textContent = finalScore.toLocaleString();
+        document.getElementById('res-kills').textContent = STATE.kills;
+        document.getElementById('res-combo').textContent = `${STATE.maxCombo}x`;
+        document.getElementById('res-time').textContent = formatTime(STATE.elapsed);
+
+        el.resultOverlay.classList.remove('hidden');
+      }
+
+      /* -----------------------------------------------------------------------
+         Input & UI Wiring (Keyboard, Mouse & Mobile Touch)
+         ----------------------------------------------------------------------- */
+      function bindEvents() {
+        window.addEventListener('resize', () => {
+          BACKDROP.resize();
+          ENGINE3D.resize();
+        });
+
+        window.addEventListener('keydown', (e) => {
+          STATE.keys[e.code] = true;
+          if (e.code === 'Space') {
+            e.preventDefault();
+            triggerJumpBoost();
+          } else if (e.code === 'KeyJ') {
+            triggerChainWhip();
+          } else if (e.code === 'KeyK') {
+            triggerHellfireBlast();
+          } else if (e.code === 'KeyE' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+            triggerPenanceStare();
+          } else if (e.code === 'KeyP' || e.code === 'Escape') {
+            if (STATE.mode === 'PLAYING' || STATE.mode === 'PAUSED') togglePause();
+          }
+        });
+
+        window.addEventListener('keyup', (e) => {
+          STATE.keys[e.code] = false;
+        });
+
+        // Desktop Mouse Combat inside Playfield
+        const gameRoot = document.getElementById('game-root');
+        gameRoot.addEventListener('mousedown', (e) => {
+          if (STATE.mode !== 'PLAYING' || e.target.closest('button')) return;
+          if (e.button === 0) triggerChainWhip();
+          if (e.button === 2) triggerHellfireBlast();
+        });
+        gameRoot.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // Mobile Virtual Touch Buttons
+        function bindHoldTouch(btnId, keyName) {
+          const btn = document.getElementById(btnId);
+          const down = (e) => {
+            e.preventDefault();
+            AUDIO.unlock();
+            STATE.keys[keyName] = true;
+            btn.classList.add('pressed');
+          };
+          const up = (e) => {
+            e.preventDefault();
+            STATE.keys[keyName] = false;
+            btn.classList.remove('pressed');
+          };
+          btn.addEventListener('touchstart', down, { passive: false });
+          btn.addEventListener('touchend', up, { passive: false });
+          btn.addEventListener('touchcancel', up, { passive: false });
+          btn.addEventListener('mousedown', down);
+          btn.addEventListener('mouseup', up);
+          btn.addEventListener('mouseleave', up);
+        }
+
+        function bindTapTouch(btnId, actionFn) {
+          const btn = document.getElementById(btnId);
+          const trigger = (e) => {
+            e.preventDefault();
+            AUDIO.unlock();
+            btn.classList.add('pressed');
+            actionFn();
+            setTimeout(() => btn.classList.remove('pressed'), 120);
+          };
+          btn.addEventListener('touchstart', trigger, { passive: false });
+          btn.addEventListener('mousedown', trigger);
+        }
+
+        bindHoldTouch('t-left', 'TouchLeft');
+        bindHoldTouch('t-right', 'TouchRight');
+        bindTapTouch('t-chain', triggerChainWhip);
+        bindTapTouch('t-blast', triggerHellfireBlast);
+        bindTapTouch('t-boost', triggerJumpBoost);
+        bindTapTouch('t-penance', triggerPenanceStare);
+
+        // HUD & Modal Buttons
+        document.getElementById('btn-start-mission').addEventListener('click', () => startMission(STATE.selectedMissionId));
+        document.getElementById('btn-pause').addEventListener('click', togglePause);
+        document.getElementById('btn-resume').addEventListener('click', togglePause);
+        document.getElementById('btn-restart-pause').addEventListener('click', () => startMission(STATE.mission.id));
+        document.getElementById('btn-hub-pause').addEventListener('click', returnToHub);
+
+        document.getElementById('btn-next-mission').addEventListener('click', () => {
+          const nextId = Math.min(6, STATE.mission.id + 1);
+          startMission(nextId);
+        });
+        document.getElementById('btn-replay-mission').addEventListener('click', () => startMission(STATE.mission.id));
+        document.getElementById('btn-result-hub').addEventListener('click', returnToHub);
+
+        // Audio Toggle
+        const btnAudio = document.getElementById('btn-audio');
+        btnAudio.addEventListener('click', () => {
+          AUDIO.unlock();
+          const nextMuted = !AUDIO.isMuted();
+          AUDIO.setMuted(nextMuted);
+          STORAGE.set({ muted: nextMuted });
+          btnAudio.textContent = nextMuted ? '🔇 MUTE' : '🔊 SFX';
+        });
+
+        // Graphics Quality Toggle
+        const btnGfx = document.getElementById('btn-gfx');
+        const modes = ['auto', 'high', 'low'];
+        btnGfx.addEventListener('click', () => {
+          const cur = STORAGE.get().gfxQuality;
+          const next = modes[(modes.indexOf(cur) + 1) % modes.length];
+          STORAGE.set({ gfxQuality: next });
+          ENGINE3D.applyQualitySetting(next);
+          btnGfx.textContent = `⚡ ${next.toUpperCase()}`;
+          showToast(`GRAPHICS QUALITY: ${next.toUpperCase()}`);
+        });
+
+        // Fullscreen Toggle (Graceful fallback inside restricted iframes)
+        document.getElementById('btn-fs').addEventListener('click', () => {
+          const root = document.getElementById('game-root');
+          if (!document.fullscreenElement) {
+            if (root.requestFullscreen) {
+              root.requestFullscreen().catch(() => showToast('FULLSCREEN BLOCKED BY EMBED FRAME'));
+            }
+          } else if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          }
+        });
+
+        // Upgrade Hellfire Power
+        document.getElementById('btn-upgrade').addEventListener('click', () => {
+          AUDIO.unlock();
+          const save = STORAGE.get();
+          if (save.totalSouls < 500) {
+            showToast('NEED 500 SOULS TO UPGRADE HELLFIRE');
+            return;
+          }
+          STORAGE.set({
+            totalSouls: save.totalSouls - 500,
+            powerLevel: save.powerLevel + 1
+          });
+          AUDIO.victory();
+          renderMissionHub();
+          showToast(`HELLFIRE UPGRADED TO LEVEL ${save.powerLevel + 1}!`);
+        });
+
+        // Unlock All Missions Toggle
+        document.getElementById('btn-unlock-all').addEventListener('click', () => {
+          AUDIO.unlock();
+          const nextUnlock = !STORAGE.get().unlockAll;
+          STORAGE.set({ unlockAll: nextUnlock });
+          renderMissionHub();
+          showToast(nextUnlock ? 'ALL 6 MISSIONS UNLOCKED' : 'CAMPAIGN LOCK RESTORED');
+        });
+      }
+
+      /* -----------------------------------------------------------------------
+         Animation Loop
+         ----------------------------------------------------------------------- */
+      let lastTime = performance.now();
+      function loop(now) {
+        const dt = Math.min(0.05, (now - lastTime) / 1000);
+        lastTime = now;
+
+        update(dt);
+
+        const activeSpeed = STATE.mode === 'PLAYING' ? STATE.currentSpeed : 16;
+        BACKDROP.render(dt, activeSpeed, STATE.mission.theme, STATE.player.penanceTimer > 0);
+        ENGINE3D.updateVisuals(dt, STATE);
+
+        requestAnimationFrame(loop);
+      }
+
+      function init() {
+        const saved = STORAGE.load();
+        AUDIO.setMuted(saved.muted);
+        document.getElementById('btn-audio').textContent = saved.muted ? '🔇 MUTE' : '🔊 SFX';
+        document.getElementById('btn-gfx').textContent = `⚡ ${saved.gfxQuality.toUpperCase()}`;
+
+        BACKDROP.resize();
+        ENGINE3D.init();
+        renderMissionHub();
+        bindEvents();
+
+        requestAnimationFrame(loop);
+      }
+
+      return { init };
+    })();
+
+    window.addEventListener('DOMContentLoaded', GAME.init);
+  </script>
 </body>
 </html>
