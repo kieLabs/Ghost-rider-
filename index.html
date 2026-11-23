@@ -1,8 +1,9 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
   <title>GHOST RIDER: HELLFIRE ROAD — GAMERKIE EDITION</title>
   <!--
   =============================================================================
@@ -53,24 +54,38 @@
       user-select: none;
       -webkit-user-select: none;
       -webkit-touch-callout: none;
-      touch-action: none;
     }
 
     html, body {
       width: 100%;
       height: 100%;
-      overflow: hidden;
       background: var(--bg-void);
       color: var(--text-main);
       font-family: 'Rajdhani', sans-serif;
+      overscroll-behavior-y: contain;
+    }
+
+    body.is-playing {
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    body:not(.is-playing) {
+      overflow-y: auto;
+      touch-action: pan-y;
     }
 
     #game-root {
       position: relative;
-      width: 100vw;
+      width: 100%;
       height: 100vh;
+      height: 100dvh;
       overflow: hidden;
       background: radial-gradient(circle at 50% 30%, #24090d 0%, #070406 85%);
+    }
+
+    body.is-playing #game-root {
+      touch-action: none;
     }
 
     /* Layered Canvases: 2D Parallax Backdrop + 3D Three.js Playfield + 2D Screen FX */
@@ -269,6 +284,7 @@
       align-items: center;
       gap: 4px;
       transition: all 0.15s ease;
+      touch-action: manipulation;
     }
     .icon-btn:hover {
       background: rgba(255, 85, 0, 0.28);
@@ -340,6 +356,21 @@
       letter-spacing: 0.15em;
     }
 
+    /* Swipe Hint Pill */
+    #swipe-hint {
+      align-self: center;
+      background: rgba(14, 9, 12, 0.65);
+      border: 1px solid rgba(255, 158, 0, 0.35);
+      color: #ffd6b0;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      padding: 4px 12px;
+      border-radius: 99px;
+      pointer-events: none;
+      opacity: 0.85;
+    }
+
     /* Mobile / Touch Controls */
     #touch-controls {
       display: flex;
@@ -382,6 +413,7 @@
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55), inset 0 0 10px rgba(255, 94, 0, 0.18);
       backdrop-filter: blur(4px);
       cursor: pointer;
+      touch-action: none;
     }
     .t-btn svg {
       width: 22px;
@@ -411,31 +443,33 @@
       #touch-controls:hover { opacity: 0.95; }
     }
 
-    /* Fullscreen Modal Overlays (Menu, Pause, Results) */
+    /* Fullscreen Modal Overlays (Menu, Pause, Results) - Smooth Mobile Scrolling Enabled */
     .overlay-screen {
       position: absolute;
       inset: 0;
       z-index: 30;
-      background: radial-gradient(circle at 50% 25%, rgba(46, 11, 16, 0.92), rgba(7, 4, 6, 0.97));
+      background: radial-gradient(circle at 50% 25%, rgba(46, 11, 16, 0.94), rgba(7, 4, 6, 0.98));
       backdrop-filter: blur(10px);
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
-      padding: 16px;
+      padding: 16px 14px 36px;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
     }
     .overlay-screen.hidden { display: none; }
 
     .modal-card {
       width: 100%;
       max-width: 920px;
+      margin: auto 0;
       background: linear-gradient(180deg, rgba(22, 12, 16, 0.96) 0%, rgba(11, 6, 9, 0.98) 100%);
       border: 1px solid rgba(255, 102, 0, 0.55);
       border-radius: 18px;
       padding: clamp(16px, 3vw, 28px);
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(255, 68, 0, 0.22);
-      max-height: 94vh;
-      overflow-y: auto;
+      touch-action: pan-y;
     }
 
     .brand-tag {
@@ -501,6 +535,7 @@
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
       gap: 12px;
       margin-bottom: 18px;
+      touch-action: pan-y;
     }
 
     .mission-card {
@@ -512,6 +547,7 @@
       cursor: pointer;
       transition: all 0.18s ease;
       text-align: left;
+      touch-action: pan-y;
     }
     .mission-card:hover:not(.locked) {
       border-color: var(--fire-bright);
@@ -601,6 +637,7 @@
       cursor: pointer;
       box-shadow: 0 8px 25px rgba(255, 68, 0, 0.55);
       transition: transform 0.15s ease, box-shadow 0.15s ease;
+      touch-action: manipulation;
     }
     .btn-primary:hover {
       transform: translateY(-2px) scale(1.02);
@@ -619,6 +656,7 @@
       font-weight: 700;
       cursor: pointer;
       transition: all 0.15s ease;
+      touch-action: manipulation;
     }
     .btn-secondary:hover {
       background: rgba(255, 102, 0, 0.22);
@@ -743,6 +781,9 @@
         <p id="banner-sub">BURN THEIR SOULS</p>
       </div>
 
+      <!-- Mobile Swipe Hint -->
+      <div id="swipe-hint">◀ SWIPE / DRAG SCREEN TO STEER ▶</div>
+
       <!-- Responsive Touch Controls -->
       <div id="touch-controls">
         <div class="touch-cluster">
@@ -801,7 +842,7 @@
         <div id="mission-grid" class="mission-grid"></div>
 
         <div class="controls-guide">
-          <div class="ctrl-item"><kbd>A/D</kbd> or <kbd>◀/▶</kbd> Steer Lane</div>
+          <div class="ctrl-item"><kbd>SWIPE</kbd> / <kbd>A/D</kbd> Steer Left &amp; Right</div>
           <div class="ctrl-item"><kbd>W/S</kbd> or <kbd>▲/▼</kbd> Throttle / Brake</div>
           <div class="ctrl-item"><kbd>SPACE</kbd> Wheelie Jump / Boost</div>
           <div class="ctrl-item"><kbd>J</kbd> / <kbd>L-Click</kbd> Hellfire Chain</div>
@@ -855,17 +896,6 @@
   </div>
 
   <script>
-    /**
-     * GHOST RIDER: HELLFIRE ROAD — GAMERKIE EDITION
-     * Modular Single-File Architecture:
-     * 1. STORAGE   - Namespaced localStorage persistence (`gamerkie_ghost_rider_`)
-     * 2. AUDIO     - Web Audio API procedural synthesizer (engine, chain, fire, penance, stingers)
-     * 3. MISSIONS  - 6 progressive campaign missions + bosses + visual themes
-     * 4. BACKDROP  - 2D Canvas layered parallax sky, moon, gothic silhouettes & embers
-     * 5. ENGINE3D  - Three.js WebGL scene, articulated 3D Ghost Rider & Hellcycle, 3D enemies & bosses
-     * 6. GAME_STATE- Core loop, combat mechanics, combo system, HUD & touch/keyboard inputs
-     */
-
     /* =========================================================================
        1. STORAGE MODULE
        ========================================================================= */
@@ -879,7 +909,7 @@
         bestScores: {},
         stars: {},
         muted: false,
-        gfxQuality: 'auto' // 'auto' | 'high' | 'low'
+        gfxQuality: 'auto'
       };
 
       let data = { ...defaults };
@@ -916,7 +946,7 @@
     })();
 
     /* =========================================================================
-       2. WEB AUDIO SYNTHESIZER MODULE (Zero External Audio Dependencies)
+       2. WEB AUDIO SYNTHESIZER MODULE
        ========================================================================= */
     const AUDIO = (() => {
       let ctx = null;
@@ -930,7 +960,6 @@
         if (!AudioCtx) return;
         ctx = new AudioCtx();
 
-        // Continuous low Hellcycle V-Twin rumble
         engineOsc = ctx.createOscillator();
         engineGain = ctx.createGain();
         const filter = ctx.createBiquadFilter();
@@ -1225,7 +1254,6 @@
       const floatingTexts = [];
       const chainArcs = [];
 
-      // Pre-generate gothic skyline peaks
       const spires = Array.from({ length: 28 }, (_, i) => ({
         x: i * 95,
         width: 45 + (i % 4) * 22,
@@ -1271,14 +1299,12 @@
       function render(dt, speed, theme, penanceActive) {
         const horizonY = h * 0.44;
 
-        // 1. Volcanic Sky Gradient
         const grad = bgCtx.createLinearGradient(0, 0, 0, horizonY + 40);
         grad.addColorStop(0, theme.skyTop);
         grad.addColorStop(1, penanceActive ? '#053b4c' : theme.skyBottom);
         bgCtx.fillStyle = grad;
         bgCtx.fillRect(0, 0, w, h);
 
-        // 2. Blood Moon / Hellfire Orb
         const moonX = w * 0.76;
         const moonY = horizonY * 0.46;
         const moonR = Math.min(w, h) * 0.095;
@@ -1296,7 +1322,6 @@
         bgCtx.arc(moonX, moonY, moonR * 0.72, 0, Math.PI * 2);
         bgCtx.fill();
 
-        // 3. Far Mountain Ridge Parallax
         scrollFar = (scrollFar + dt * speed * 0.45) % 1200;
         bgCtx.fillStyle = 'rgba(14, 6, 10, 0.72)';
         bgCtx.beginPath();
@@ -1310,7 +1335,6 @@
         bgCtx.closePath();
         bgCtx.fill();
 
-        // 4. Mid-ground Ruined Gothic Cathedral & Highway Bridge Silhouettes
         const spanW = spires.length * 95;
         scrollMid = (scrollMid + dt * speed * 1.35) % spanW;
         bgCtx.fillStyle = '#090407';
@@ -1324,7 +1348,6 @@
           const topY = horizonY - baseH;
           bgCtx.fillRect(drawX, topY, s.width, baseH + 16);
 
-          // Pointed Gothic Roof
           bgCtx.beginPath();
           bgCtx.moveTo(drawX - 4, topY);
           bgCtx.lineTo(drawX + s.width * 0.5, topY - 34);
@@ -1338,7 +1361,6 @@
           }
         }
 
-        // Horizon Glow Strip
         const hGlow = bgCtx.createLinearGradient(0, horizonY - 12, 0, horizonY + 24);
         hGlow.addColorStop(0, 'rgba(255,80,0,0)');
         hGlow.addColorStop(0.5, penanceActive ? 'rgba(0,240,255,0.45)' : 'rgba(255,75,0,0.42)');
@@ -1346,7 +1368,6 @@
         bgCtx.fillStyle = hGlow;
         bgCtx.fillRect(0, horizonY - 12, w, 36);
 
-        // 5. Near-ground Hellfire Ember Particles
         scrollNear += dt * speed;
         for (let i = 0; i < embers.length; i++) {
           const e = embers[i];
@@ -1363,7 +1384,6 @@
           bgCtx.fill();
         }
 
-        // 6. Render 2D FX Canvas (Chain Whips & Floating Damage Popups)
         fxCtx.clearRect(0, 0, w, h);
 
         for (let i = chainArcs.length - 1; i >= 0; i--) {
@@ -1470,7 +1490,6 @@
       }
 
       function buildHighway() {
-        // Asphalt Cursed Highway Strip
         const roadGeo = new THREE.PlaneGeometry(13.5, 160);
         const roadMat = new THREE.MeshStandardMaterial({
           color: 0x161216,
@@ -1482,7 +1501,6 @@
         roadMesh.position.z = -62;
         scene.add(roadMesh);
 
-        // Glowing Hellfire Lane Dividers & Guard Rails
         stripeGroup = new THREE.Group();
         const stripeGeo = new THREE.BoxGeometry(0.22, 0.05, 3.2);
         const stripeMat = new THREE.MeshBasicMaterial({ color: 0xff6a00 });
@@ -1497,7 +1515,6 @@
         }
         scene.add(stripeGroup);
 
-        // Side Hellfire Pylons for High-Speed Sense of Motion
         railGroup = new THREE.Group();
         const postGeo = new THREE.BoxGeometry(0.45, 1.6, 0.45);
         const postMat = new THREE.MeshStandardMaterial({ color: 0x2a181d, roughness: 0.6 });
@@ -1527,7 +1544,6 @@
         const fireMat = new THREE.MeshBasicMaterial({ color: 0xff6a00 });
         const coreFireMat = new THREE.MeshBasicMaterial({ color: 0xfff3b0 });
 
-        // Blazing Wheels (Torus + Inner Fire Rim)
         const tireGeo = new THREE.TorusGeometry(0.62, 0.2, 12, 24);
         const rimGeo = new THREE.TorusGeometry(0.48, 0.08, 8, 20);
 
@@ -1545,17 +1561,14 @@
         rearWheel.position.set(0, 0.62, 1.25);
         heroGroup.add(rearWheel);
 
-        // Hellcycle Chassis & Engine Block
         const chassis = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.55, 2.1), metalDark);
         chassis.position.set(0, 0.85, -0.05);
         heroGroup.add(chassis);
 
-        // Glowing Hellfire Engine Core
         const engineCore = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.42, 0.85), fireMat);
         engineCore.position.set(0, 0.82, -0.1);
         heroGroup.add(engineCore);
 
-        // Extended Chopper Forks
         const forkGeo = new THREE.CylinderGeometry(0.06, 0.06, 1.45, 8);
         [-0.22, 0.22].forEach((fx) => {
           const fork = new THREE.Mesh(forkGeo, chromeMat);
@@ -1564,7 +1577,6 @@
           heroGroup.add(fork);
         });
 
-        // Twin Exhaust Pipes
         const pipeGeo = new THREE.CylinderGeometry(0.07, 0.09, 1.4, 8);
         [-0.36, 0.36].forEach((px) => {
           const pipe = new THREE.Mesh(pipeGeo, chromeMat);
@@ -1573,13 +1585,11 @@
           heroGroup.add(pipe);
         });
 
-        // Rider Leather Jacket Torso & Spiked Shoulders
         const torso = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.92, 0.46), metalDark);
         torso.position.set(0, 1.56, 0.18);
         torso.rotation.x = 0.22;
         heroGroup.add(torso);
 
-        // Arms gripping handlebars
         const armGeo = new THREE.CylinderGeometry(0.09, 0.08, 0.85, 8);
         [-0.44, 0.44].forEach((ax) => {
           const arm = new THREE.Mesh(armGeo, metalDark);
@@ -1588,7 +1598,6 @@
           heroGroup.add(arm);
         });
 
-        // Flaming Skull Head!
         skullHead = new THREE.Group();
         skullHead.position.set(0, 2.24, 0.05);
 
@@ -1599,7 +1608,6 @@
         jaw.position.set(0, -0.16, -0.05);
         skullHead.add(jaw);
 
-        // Glowing Eye Sockets
         const eyeGeo = new THREE.SphereGeometry(0.055, 8, 8);
         const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff2200 });
         [-0.09, 0.09].forEach((ex) => {
@@ -1608,7 +1616,6 @@
           skullHead.add(eye);
         });
 
-        // Crown of Hellfire Flames on Skull
         for (let i = 0; i < 6; i++) {
           const flameCone = new THREE.Mesh(
             new THREE.ConeGeometry(0.14 - i * 0.012, 0.45 + (i % 2) * 0.15, 7),
@@ -1622,7 +1629,6 @@
 
         heroGroup.add(skullHead);
 
-        // Hellfire Chain Whip Ring (visualized when attacking)
         chainRing = new THREE.Mesh(
           new THREE.TorusGeometry(2.6, 0.08, 8, 32),
           new THREE.MeshBasicMaterial({ color: 0xffbe0b, transparent: true, opacity: 0 })
@@ -1638,7 +1644,6 @@
         const group = new THREE.Group();
 
         if (archetype === 'hazard') {
-          // Spiked Hellfire Barricade
           const barrier = new THREE.Mesh(
             new THREE.BoxGeometry(2.5, 1.05, 0.8),
             new THREE.MeshStandardMaterial({ color: 0x2b1216, metalness: 0.6, roughness: 0.4 })
@@ -1670,7 +1675,6 @@
         const glowMat = new THREE.MeshBasicMaterial({ color: bodyColor });
 
         if (archetype === 'biker' || archetype === 'biker_boss') {
-          // Enemy Hell-Chopper + Demon Rider
           const wheelGeo = new THREE.TorusGeometry(0.55, 0.16, 8, 16);
           const w1 = new THREE.Mesh(wheelGeo, glowMat);
           w1.rotation.y = Math.PI / 2;
@@ -1691,7 +1695,6 @@
           head.position.y = 2.18;
           group.add(head);
         } else {
-          // Demon Brute / Shadow Stalker / Arch-Fiend
           const torso = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.45, 0.75), armorMat);
           torso.position.y = 1.25;
           group.add(torso);
@@ -1700,7 +1703,6 @@
           core.position.set(0, 1.35, 0.35);
           group.add(core);
 
-          // Horns
           const hornGeo = new THREE.ConeGeometry(0.14, 0.65, 6);
           [-0.36, 0.36].forEach((hx) => {
             const horn = new THREE.Mesh(hornGeo, glowMat);
@@ -1737,7 +1739,6 @@
       function updateVisuals(dt, state) {
         if (!renderer || !scene || !camera) return;
 
-        // Scroll Road Stripes & Side Pylons
         const moveZ = state.currentSpeed * dt;
         for (let i = 0; i < stripes.length; i++) {
           stripes[i].position.z += moveZ;
@@ -1748,24 +1749,20 @@
           if (pillars[i].position.z > 14) pillars[i].position.z -= 144;
         }
 
-        // Hero Position, Lean, Jump & Wheelie Physics
         heroGroup.position.x = state.player.x;
         heroGroup.position.y = state.player.y;
         heroGroup.rotation.z = THREE.MathUtils.lerp(heroGroup.rotation.z, -state.player.vx * 0.045, 0.18);
         const targetPitch = state.player.y > 0.05 ? 0.28 : (state.player.boosting ? 0.16 : 0);
         heroGroup.rotation.x = THREE.MathUtils.lerp(heroGroup.rotation.x, targetPitch, 0.15);
 
-        // Spin Wheels
         frontWheel.rotation.x -= moveZ * 0.85;
         rearWheel.rotation.x -= moveZ * 0.85;
 
-        // Animate Skull Crown Flames
         const t = performance.now() * 0.012;
         for (let i = 0; i < flameParticles.length; i++) {
           flameParticles[i].scale.y = 0.8 + Math.sin(t + i * 1.3) * 0.32;
         }
 
-        // Chain Whip Ring Flash
         if (state.player.chainTimer > 0) {
           chainRing.material.opacity = Math.min(0.95, state.player.chainTimer * 4);
           chainRing.rotation.z += dt * 22;
@@ -1774,7 +1771,6 @@
           chainRing.material.opacity = 0;
         }
 
-        // Dynamic Light & Camera Shake
         bikePointLight.position.set(state.player.x, state.player.y + 2.2, 3.2);
         bikePointLight.color.setHex(state.player.penanceTimer > 0 ? 0x00f0ff : 0xff5500);
         bikePointLight.intensity = state.player.penanceTimer > 0 ? 4.5 : 2.8;
@@ -1853,10 +1849,10 @@
         },
         enemies: [],
         projectiles: [],
-        keys: {}
+        keys: {},
+        swipeSteer: 0
       };
 
-      // DOM References
       const el = {
         menuOverlay: document.getElementById('menu-overlay'),
         pauseOverlay: document.getElementById('pause-overlay'),
@@ -1888,6 +1884,10 @@
       let bannerTimeout = null;
       let toastTimeout = null;
 
+      function syncBodyScrollState() {
+        document.body.classList.toggle('is-playing', STATE.mode === 'PLAYING');
+      }
+
       function showToast(msg) {
         el.toast.textContent = msg;
         el.toast.classList.add('show');
@@ -1914,9 +1914,6 @@
         return 1 + (STORAGE.get().powerLevel - 1) * 0.22;
       }
 
-      /* -----------------------------------------------------------------------
-         Menu & Persistence Rendering
-         ----------------------------------------------------------------------- */
       function renderMissionHub() {
         const save = STORAGE.get();
         document.getElementById('menu-total-souls').textContent = save.totalSouls.toLocaleString();
@@ -1957,9 +1954,6 @@
         });
       }
 
-      /* -----------------------------------------------------------------------
-         Mission Initialization & Cleanup
-         ----------------------------------------------------------------------- */
       function clearEntities() {
         const scene = ENGINE3D.getScene();
         STATE.enemies.forEach((e) => scene.remove(e.mesh));
@@ -1981,6 +1975,8 @@
         STATE.mission = mission;
         STATE.selectedMissionId = mission.id;
         STATE.mode = 'PLAYING';
+        syncBodyScrollState();
+
         STATE.elapsed = 0;
         STATE.score = 0;
         STATE.kills = 0;
@@ -1991,6 +1987,7 @@
         STATE.spawnTimer = 0.8;
         STATE.cameraShake = 0;
         STATE.bossSpawned = false;
+        STATE.swipeSteer = 0;
 
         const maxHp = 100 + (STORAGE.get().powerLevel - 1) * 20;
         Object.assign(STATE.player, {
@@ -2021,9 +2018,6 @@
         updateHUD();
       }
 
-      /* -----------------------------------------------------------------------
-         Combat Actions (Chain Whip, Hellfire Blast, Penance Stare, Boost/Jump)
-         ----------------------------------------------------------------------- */
       function triggerJumpBoost() {
         if (STATE.mode !== 'PLAYING') return;
         if (STATE.player.y <= 0.02) {
@@ -2044,7 +2038,6 @@
         const heroScreen = ENGINE3D.worldToScreen(heroPos);
         let hitAny = false;
 
-        // Hit enemies in wide melee arc in front/beside Ghost Rider
         for (let i = STATE.enemies.length - 1; i >= 0; i--) {
           const en = STATE.enemies[i];
           if (en.type === 'hazard') continue;
@@ -2058,7 +2051,6 @@
           }
         }
 
-        // Hit Boss if close
         if (STATE.boss) {
           const dz = 3.2 - STATE.boss.z;
           const dx = Math.abs(STATE.boss.x - STATE.player.x);
@@ -2168,7 +2160,6 @@
         const scr = ENGINE3D.worldToScreen(STATE.boss.mesh.position);
         BACKDROP.addFloatingText(scr.x, scr.y - 18, `-${dmg}`, color, 1.15);
 
-        // Phase 2 transition at 50% HP
         if (!STATE.boss.phase2 && STATE.boss.hp <= STATE.boss.maxHp * 0.5 && STATE.boss.hp > 0) {
           STATE.boss.phase2 = true;
           STATE.cameraShake = 0.35;
@@ -2201,9 +2192,6 @@
         }
       }
 
-      /* -----------------------------------------------------------------------
-         Spawning Enemies & Bosses
-         ----------------------------------------------------------------------- */
       function spawnWaveEntity() {
         const pool = STATE.mission.enemyPool;
         const type = pool[Math.floor(Math.random() * pool.length)];
@@ -2258,9 +2246,6 @@
         showBanner(`BOSS APPROACHES: ${cfg.name}`, 'USE CHAIN, BLAST & PENANCE STARE!');
       }
 
-      /* -----------------------------------------------------------------------
-         Main Simulation Step
-         ----------------------------------------------------------------------- */
       function update(dt) {
         if (STATE.mode !== 'PLAYING') return;
 
@@ -2271,7 +2256,6 @@
           return;
         }
 
-        // Cooldowns & Timers
         STATE.player.chainCooldown = Math.max(0, STATE.player.chainCooldown - dt);
         STATE.player.chainTimer = Math.max(0, STATE.player.chainTimer - dt);
         STATE.player.blastCooldown = Math.max(0, STATE.player.blastCooldown - dt);
@@ -2285,17 +2269,20 @@
           if (STATE.comboTimer <= 0) STATE.combo = 1;
         }
 
-        // Player Horizontal Steering & Throttle
+        // Player Horizontal Steering (Keyboard + Touch Buttons + Direct Screen Swipe/Drag)
         let steerInput = 0;
         if (STATE.keys['ArrowLeft'] || STATE.keys['KeyA'] || STATE.keys['TouchLeft']) steerInput -= 1;
         if (STATE.keys['ArrowRight'] || STATE.keys['KeyD'] || STATE.keys['TouchRight']) steerInput += 1;
+        if (steerInput === 0 && Math.abs(STATE.swipeSteer) > 0.02) {
+          steerInput = STATE.swipeSteer;
+        }
 
         let throttleInput = 0;
         if (STATE.keys['ArrowUp'] || STATE.keys['KeyW']) throttleInput += 1;
         if (STATE.keys['ArrowDown'] || STATE.keys['KeyS']) throttleInput -= 1;
 
-        const targetVx = steerInput * 10.5;
-        STATE.player.vx += (targetVx - STATE.player.vx) * Math.min(1, dt * 12);
+        const targetVx = steerInput * 11.2;
+        STATE.player.vx += (targetVx - STATE.player.vx) * Math.min(1, dt * 13);
         STATE.player.x = Math.max(-LANE_LIMIT, Math.min(LANE_LIMIT, STATE.player.x + STATE.player.vx * dt));
 
         // Vertical Jump / Gravity
@@ -2314,7 +2301,6 @@
         STATE.currentSpeed += (targetSpeed - STATE.currentSpeed) * Math.min(1, dt * 6);
         AUDIO.updateEngine((STATE.currentSpeed - 20) / 40, true);
 
-        // Spawn Enemies or Trigger Boss
         if (!STATE.bossSpawned && STATE.kills >= STATE.mission.targetKills) {
           spawnBoss();
         }
@@ -2328,7 +2314,6 @@
           STATE.spawnTimer = STATE.mission.spawnInterval * (STATE.bossSpawned ? 1.5 : 1);
         }
 
-        // Update Enemies
         for (let i = STATE.enemies.length - 1; i >= 0; i--) {
           const en = STATE.enemies[i];
           const relSpeed = STATE.currentSpeed - en.speedOffset;
@@ -2338,7 +2323,6 @@
             en.x += en.vx * dt;
             if (Math.abs(en.x) > LANE_LIMIT) en.vx *= -1;
 
-            // Enemy Ranged Fire
             en.shootTimer -= dt;
             if (en.shootTimer <= 0 && en.z > -48 && en.z < -8) {
               en.shootTimer = 2.4 + Math.random() * 1.4;
@@ -2361,12 +2345,10 @@
 
           en.mesh.position.set(en.x, 0, en.z);
 
-          // Player Collision Check (jump clears hazards!)
           const dz = Math.abs(en.z - 3.2);
           const dx = Math.abs(en.x - STATE.player.x);
           if (dz < 1.45 && dx < 1.25) {
             if (en.type === 'hazard' && STATE.player.y > 0.85) {
-              // Cleanly jumped over barricade!
               if (!en.cleared) {
                 en.cleared = true;
                 STATE.score += 35 * STATE.combo;
@@ -2381,17 +2363,15 @@
             }
           }
 
-          // Despawn past camera
           if (en.z > 13 && STATE.enemies[i] === en) {
             ENGINE3D.getScene().remove(en.mesh);
             STATE.enemies.splice(i, 1);
           }
         }
 
-        // Update Boss AI & Attacks
         if (STATE.boss) {
           const b = STATE.boss;
-          b.z += ( -8.5 - b.z ) * Math.min(1, dt * 2.2);
+          b.z += (-8.5 - b.z) * Math.min(1, dt * 2.2);
           b.strafePhase += dt * (b.phase2 ? 2.4 : 1.5);
           b.x = Math.sin(b.strafePhase) * (LANE_LIMIT - 0.8);
           b.mesh.position.set(b.x, Math.abs(Math.sin(b.strafePhase * 2)) * 0.35, b.z);
@@ -2418,7 +2398,6 @@
           }
         }
 
-        // Update Projectiles
         for (let i = STATE.projectiles.length - 1; i >= 0; i--) {
           const p = STATE.projectiles[i];
           p.x += p.vx * dt;
@@ -2429,7 +2408,6 @@
           let consumed = false;
 
           if (p.fromPlayer) {
-            // Check hit against enemies
             for (let j = STATE.enemies.length - 1; j >= 0; j--) {
               const en = STATE.enemies[j];
               if (en.type === 'hazard') continue;
@@ -2439,7 +2417,6 @@
                 break;
               }
             }
-            // Check hit against boss
             if (!consumed && STATE.boss) {
               if (Math.abs(STATE.boss.z - p.z) < 2.4 && Math.abs(STATE.boss.x - p.x) < 2.2) {
                 damageBoss(p.damage, '#ff9e00');
@@ -2447,7 +2424,6 @@
               }
             }
           } else {
-            // Enemy projectile hitting player
             if (Math.abs(p.z - 3.2) < 1.2 && Math.abs(p.x - STATE.player.x) < 1.05 && STATE.player.y < 1.25) {
               damagePlayer(p.damage);
               consumed = true;
@@ -2488,22 +2464,24 @@
         }
       }
 
-      /* -----------------------------------------------------------------------
-         Pause & End-of-Mission Flow
-         ----------------------------------------------------------------------- */
       function togglePause() {
         if (STATE.mode === 'PLAYING') {
           STATE.mode = 'PAUSED';
+          STATE.swipeSteer = 0;
+          syncBodyScrollState();
           AUDIO.updateEngine(0, false);
           el.pauseOverlay.classList.remove('hidden');
         } else if (STATE.mode === 'PAUSED') {
           STATE.mode = 'PLAYING';
+          syncBodyScrollState();
           el.pauseOverlay.classList.add('hidden');
         }
       }
 
       function returnToHub() {
         STATE.mode = 'MENU';
+        STATE.swipeSteer = 0;
+        syncBodyScrollState();
         AUDIO.updateEngine(0, false);
         clearEntities();
         el.pauseOverlay.classList.add('hidden');
@@ -2514,6 +2492,8 @@
 
       function completeMission(won) {
         STATE.mode = 'RESULTS';
+        STATE.swipeSteer = 0;
+        syncBodyScrollState();
         AUDIO.updateEngine(0, false);
 
         const save = STORAGE.get();
@@ -2563,9 +2543,6 @@
         el.resultOverlay.classList.remove('hidden');
       }
 
-      /* -----------------------------------------------------------------------
-         Input & UI Wiring (Keyboard, Mouse & Mobile Touch)
-         ----------------------------------------------------------------------- */
       function bindEvents() {
         window.addEventListener('resize', () => {
           BACKDROP.resize();
@@ -2592,8 +2569,40 @@
           STATE.keys[e.code] = false;
         });
 
-        // Desktop Mouse Combat inside Playfield
         const gameRoot = document.getElementById('game-root');
+
+        // Direct Screen Swipe / Drag Left & Right Steering while PLAYING
+        let dragActive = false;
+        let dragStartX = 0;
+
+        gameRoot.addEventListener('touchstart', (e) => {
+          if (STATE.mode !== 'PLAYING') return;
+          if (e.target.closest('button')) return;
+          AUDIO.unlock();
+          if (e.touches.length > 0) {
+            dragActive = true;
+            dragStartX = e.touches[0].clientX;
+            STATE.swipeSteer = 0;
+          }
+        }, { passive: true });
+
+        gameRoot.addEventListener('touchmove', (e) => {
+          if (!dragActive || STATE.mode !== 'PLAYING') return;
+          if (e.cancelable) e.preventDefault();
+          if (e.touches.length > 0) {
+            const dx = e.touches[0].clientX - dragStartX;
+            STATE.swipeSteer = Math.max(-1.25, Math.min(1.25, dx / 45));
+          }
+        }, { passive: false });
+
+        const endDrag = () => {
+          dragActive = false;
+          STATE.swipeSteer = 0;
+        };
+        gameRoot.addEventListener('touchend', endDrag);
+        gameRoot.addEventListener('touchcancel', endDrag);
+
+        // Desktop Mouse Combat inside Playfield
         gameRoot.addEventListener('mousedown', (e) => {
           if (STATE.mode !== 'PLAYING' || e.target.closest('button')) return;
           if (e.button === 0) triggerChainWhip();
@@ -2606,12 +2615,14 @@
           const btn = document.getElementById(btnId);
           const down = (e) => {
             e.preventDefault();
+            e.stopPropagation();
             AUDIO.unlock();
             STATE.keys[keyName] = true;
             btn.classList.add('pressed');
           };
           const up = (e) => {
             e.preventDefault();
+            e.stopPropagation();
             STATE.keys[keyName] = false;
             btn.classList.remove('pressed');
           };
@@ -2627,6 +2638,7 @@
           const btn = document.getElementById(btnId);
           const trigger = (e) => {
             e.preventDefault();
+            e.stopPropagation();
             AUDIO.unlock();
             btn.classList.add('pressed');
             actionFn();
@@ -2657,7 +2669,6 @@
         document.getElementById('btn-replay-mission').addEventListener('click', () => startMission(STATE.mission.id));
         document.getElementById('btn-result-hub').addEventListener('click', returnToHub);
 
-        // Audio Toggle
         const btnAudio = document.getElementById('btn-audio');
         btnAudio.addEventListener('click', () => {
           AUDIO.unlock();
@@ -2667,7 +2678,6 @@
           btnAudio.textContent = nextMuted ? '🔇 MUTE' : '🔊 SFX';
         });
 
-        // Graphics Quality Toggle
         const btnGfx = document.getElementById('btn-gfx');
         const modes = ['auto', 'high', 'low'];
         btnGfx.addEventListener('click', () => {
@@ -2679,7 +2689,6 @@
           showToast(`GRAPHICS QUALITY: ${next.toUpperCase()}`);
         });
 
-        // Fullscreen Toggle (Graceful fallback inside restricted iframes)
         document.getElementById('btn-fs').addEventListener('click', () => {
           const root = document.getElementById('game-root');
           if (!document.fullscreenElement) {
@@ -2691,7 +2700,6 @@
           }
         });
 
-        // Upgrade Hellfire Power
         document.getElementById('btn-upgrade').addEventListener('click', () => {
           AUDIO.unlock();
           const save = STORAGE.get();
@@ -2708,7 +2716,6 @@
           showToast(`HELLFIRE UPGRADED TO LEVEL ${save.powerLevel + 1}!`);
         });
 
-        // Unlock All Missions Toggle
         document.getElementById('btn-unlock-all').addEventListener('click', () => {
           AUDIO.unlock();
           const nextUnlock = !STORAGE.get().unlockAll;
@@ -2718,9 +2725,6 @@
         });
       }
 
-      /* -----------------------------------------------------------------------
-         Animation Loop
-         ----------------------------------------------------------------------- */
       let lastTime = performance.now();
       function loop(now) {
         const dt = Math.min(0.05, (now - lastTime) / 1000);
@@ -2741,6 +2745,7 @@
         document.getElementById('btn-audio').textContent = saved.muted ? '🔇 MUTE' : '🔊 SFX';
         document.getElementById('btn-gfx').textContent = `⚡ ${saved.gfxQuality.toUpperCase()}`;
 
+        syncBodyScrollState();
         BACKDROP.resize();
         ENGINE3D.init();
         renderMissionHub();
@@ -2756,3 +2761,11 @@
   </script>
 </body>
 </html>
+
+```
+अब index.html में दोनों सुधार कर दिए गए हैं:
+ * **डायरेक्ट स्क्रीन स्वाइप/ड्रैग स्टीयरिंग:** गेम खेलते समय स्क्रीन पर कहीं भी उंगली बाएँ या दाएँ (Left/Right) करने पर बाइक उसी तरफ मुड़ेगी।
+ * **मेनू स्क्रॉलिंग फिक्स:** Mission Hub और अन्य पॉपअप ओवरले में touch-action: pan-y और -webkit-overflow-scrolling: touch लगा दिया गया है ताकि मोबाइल पर मिशन कार्ड्स और स्टार्ट बटन तक आराम से स्क्रॉल हो सके।
+```
+
+```
